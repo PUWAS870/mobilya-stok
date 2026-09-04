@@ -580,7 +580,7 @@
                 const newInv = [];
                 oldData.forEach(oldPart => {
                     (oldPart.colors || []).forEach(oldColor => {
-                        const cName = (oldColor.name || '').toUpperCase();
+                        const cName = (oldColor.name || '').toLocaleUpperCase('tr-TR');
                         let colorEntry = newInv.find(c => c.name === cName);
                         if (!colorEntry) { colorEntry = { id: generateId(), name: cName, parts: [] }; newInv.push(colorEntry); }
                         const legacyHistory = (oldColor.history || []).map(h => {
@@ -597,7 +597,7 @@
                             incoming30: oldColor.incoming30 || 0, outgoing30: oldColor.outgoing30 || 0,
                             history: legacyHistory, note: ''
                         };
-                        colorEntry.parts.push({ id: generateId(), name: (oldPart.name || '').toUpperCase(), sizes: [sizeEntry] });
+                        colorEntry.parts.push({ id: generateId(), name: (oldPart.name || '').toLocaleUpperCase('tr-TR'), sizes: [sizeEntry] });
                     });
                 });
                 return newInv;
@@ -690,19 +690,19 @@
             }
             function saveNameEdit(type, colorId, partId, sizeId, newVal) {
                 const id = type === 'color' ? colorId : type === 'part' ? partId : sizeId;
-                const upper = (newVal || '').trim().toUpperCase();
+                const upper = (newVal || '').trim().toLocaleUpperCase('tr-TR');
 
                 if (upper) {
                     if (type === 'color') {
-                        const dup = inventory.some(c => c.id !== colorId && (c.name || '').toUpperCase() === upper);
+                        const dup = inventory.some(c => c.id !== colorId && (c.name || '').toLocaleUpperCase('tr-TR') === upper);
                         if (dup) { showToast(`"${upper}" isimli bir renk zaten mevcut. Lütfen farklı bir isim girin.`, 'danger'); return; }
                     } else if (type === 'part') {
                         const c = findColor(colorId);
-                        const dup = c && c.parts.some(p => p.id !== partId && (p.name || '').toUpperCase() === upper);
+                        const dup = c && c.parts.some(p => p.id !== partId && (p.name || '').toLocaleUpperCase('tr-TR') === upper);
                         if (dup) { showToast(`Bu rengin altında "${upper}" isimli bir parça zaten mevcut. Lütfen farklı bir isim girin.`, 'danger'); return; }
                     } else if (type === 'size') {
                         const p = findPart(colorId, partId);
-                        const dup = p && p.sizes.some(s => s.id !== sizeId && (s.name || '').toUpperCase() === upper);
+                        const dup = p && p.sizes.some(s => s.id !== sizeId && (s.name || '').toLocaleUpperCase('tr-TR') === upper);
                         if (dup) { showToast(`Bu parçanın altında "${upper}" isimli bir ebat zaten mevcut. Lütfen farklı bir isim girin.`, 'danger'); return; }
                     }
                 }
@@ -1363,7 +1363,7 @@
                 const body = document.getElementById('listModalBody');
                 const map = {};
                 inventory.forEach(c => c.parts.forEach(p => {
-                    const key = (p.name || '').toUpperCase();
+                    const key = (p.name || '').toLocaleUpperCase('tr-TR');
                     if (!key) return;
                     if (!map[key]) map[key] = [];
                     p.sizes.forEach(s => {
@@ -1637,7 +1637,7 @@
                 list.addEventListener('input', function (e) {
                     if (e.target.classList.contains('inline-edit-input')) {
                         const start = e.target.selectionStart, end = e.target.selectionEnd;
-                        e.target.value = e.target.value.toUpperCase();
+                        e.target.value = e.target.value.toLocaleUpperCase('tr-TR');
                         e.target.setSelectionRange(start, end);
                     }
                 });
@@ -1738,6 +1738,11 @@
                 document.getElementById('confirmDeleteBtn').addEventListener('click', performDelete);
                 document.getElementById('qtyModalConfirmBtn').addEventListener('click', confirmQtyModal);
                 document.getElementById('noteModalSaveBtn').addEventListener('click', saveNoteModal);
+                document.getElementById('noteModalTextarea').addEventListener('input', function () {
+                    const start = this.selectionStart, end = this.selectionEnd;
+                    this.value = this.value.toLocaleUpperCase('tr-TR');
+                    this.setSelectionRange(start, end);
+                });
 
                 document.getElementById('addColorTopBtn').addEventListener('click', addColor);
 
@@ -1797,7 +1802,7 @@
                 });
                 searchInput.addEventListener('input', function () {
                     const start = this.selectionStart, end = this.selectionEnd;
-                    this.value = this.value.toUpperCase();
+                    this.value = this.value.toLocaleUpperCase('tr-TR');
                     this.setSelectionRange(start, end);
                     searchTerm = this.value;
                     render();
