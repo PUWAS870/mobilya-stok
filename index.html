@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1e3a5f">
+    <title>Mobilya Parça Stok Takibi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a5f;
+            --primary-hover: #16304f;
+            --secondary: #4a5568;
+            --accent: #2c6b9e;
+            --bg: #eef1f5;
+            --card-bg: #ffffff;
+            --text: #202b3a;
+            --border: #dce1e7;
+            --shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+            --part-card-bg: #e6f8ee;
+            --part-card-border: #a3ddb8;
+            --size-card-bg: #ffffff;
+            --size-card-border: #dfe3e8;
+            --touch: 48px;
+        }
+        * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; overflow-x: hidden; }
+        body {
+            background-color: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text); padding-bottom: 40px; -webkit-font-smoothing: antialiased;
+            font-size: 16px; -webkit-user-select: none; user-select: none;
+        }
+        input, textarea, select { -webkit-user-select: auto; user-select: auto; font-size: 16px; }
+        button, .btn, .icon-btn { touch-action: manipulation; cursor: pointer; }
+        button, .icon-btn, .delete-corner-btn, .edit-name-btn, .toggle-icon, .thickness-select-btn, .btn-mini-action,
+        .btn-add-inline, .note-btn, .step-btn, .history-move-btn, .history-delete-btn, .list-color-header,
+        .btn-close-list, .color-card-header, .part-card-header, .size-card-header {
+            transition: transform 0.15s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            button:hover, .icon-btn:hover, .delete-corner-btn:hover, .edit-name-btn:hover, .toggle-icon:hover,
+            .thickness-select-btn:hover, .btn-mini-action:hover, .btn-add-inline:hover, .note-btn:hover, .step-btn:hover,
+            .history-move-btn:hover, .history-delete-btn:hover, .list-color-header:hover, .btn-close-list:hover,
+            .mode-btn:hover, .btn-tool:hover, .btn-add-color-top:hover, .note-preview:hover, .note-preview-list:hover {
+                transform: scale(1.025);
+            }
+            .btn-add-color-top:hover, .mode-btn:hover { transform: scale(1.008); }
+            .color-card-header:hover, .part-card-header:hover, .size-card-header:hover { transform: scale(1.004); }
+            .qty-input:hover, .search-wrapper input:hover, .inline-edit-input:hover, .history-qty-edit:hover, .history-datetime-edit:hover {
+                transform: scale(1.008);
+            }
+        }
+        body.scroll-locked { overflow: hidden; }
+        html.scroll-locked { overflow: hidden; }
+
+        .app-header { background: linear-gradient(135deg, #1e3a5f 0%, #2c6b9e 100%); color: #fff; padding: 16px 0; box-shadow: var(--shadow); margin-bottom: 14px; position: sticky; top: 0; z-index: 20; }
+        .app-header h1 { font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; }
+        .container { width: 100%; max-width: 720px; padding-left: 10px; padding-right: 10px; margin: 0 auto; }
+
+        .mode-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+        .mode-btn { flex: 1; min-height: 54px; font-size: 1.05rem; font-weight: 700; border-radius: 10px; border: 2px solid var(--border); background: #fff; color: var(--text); transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
+        .mode-btn:active { transform: scale(0.97); }
+        .mode-btn.active-incoming { background: #27ae60; border-color: #27ae60; color: #fff; }
+        .mode-btn.active-outgoing { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; background: var(--card-bg); padding: 8px; border-radius: 12px; box-shadow: var(--shadow); }
+        .btn-tool { background: none; border: 1.5px solid #333; border-radius: 10px; width: var(--touch); height: var(--touch); display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #333; padding: 0; flex-shrink:0; transition: transform 0.15s ease, background-color 0.18s ease, color 0.18s ease; }
+        .btn-tool:active { background: #333; color: #fff; transform: scale(0.95); }
+        .btn-tool.excel { color: #217346; border-color: #217346; }
+        .btn-tool.excel:active { background: #217346; color: #fff; }
+        .search-wrapper { flex: 0 0 var(--touch); display: flex; align-items: center; gap: 6px; overflow: hidden; }
+        .toolbar.search-open .search-wrapper { flex: 1 1 100%; min-width: 140px; overflow: visible; }
+        .toolbar-extra-buttons { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
+        .toolbar.search-open .toolbar-extra-buttons { margin-left: calc(var(--touch) + 8px); }
+        .search-wrapper input { flex: 1; min-height: var(--touch); border: 1.5px solid #333; border-radius: 10px; padding: 8px 12px; text-transform: uppercase; transition: max-width 0.2s ease, opacity 0.16s ease, padding 0.2s ease, border-width 0.2s ease, transform 0.15s ease; max-width: 600px; opacity: 1; }
+        .search-wrapper input.search-input-hidden { max-width: 0; opacity: 0; padding-left: 0; padding-right: 0; border-width: 0; pointer-events: none; }
+        .search-wrapper input:focus { outline: none; border-color: var(--primary); }
+        .search-hint-bar { background:#fff3cd; color:#664d03; border-radius:10px; padding:8px 12px; font-size:0.85rem; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+
+        .btn-add-color-top { width: 100%; min-height: 54px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 700; font-size: 1.05rem; margin-bottom: 14px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s ease, background-color 0.2s ease; }
+        .btn-add-color-top:active { background: var(--primary-hover); transform: scale(0.98); }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: #6b7280; }
+        .empty-state i { font-size: 3rem; margin-bottom: 14px; opacity: .5; }
+
+        /* Renk Kartı */
+        .color-card { border: 2px solid; border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; position: relative; }
+        .color-card.theme-blue { background: #e3f0fc; border-color: #a9cdec; }
+        .color-card.theme-gray { background: #f8f4ea; border-color: #e3d5b8; }
+        .color-card-header { display: flex; flex-direction: column; gap: 8px; padding: 14px 12px 14px 46px; cursor: pointer; }
+        .part-card-header { display: flex; flex-direction: column; gap: 6px; padding: 11px 10px 11px 44px; cursor: pointer; }
+        .size-card-header { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 10px 44px; cursor: pointer; }
+        .delete-corner-btn {
+            position: absolute; top: 8px; left: 8px; display: grid; place-items: center;
+            padding: 0; margin: 0; border: none; background: none; z-index: 3; cursor: pointer; line-height: 1;
+            box-sizing: border-box; overflow: visible; text-align: center;
+        }
+        .delete-corner-btn svg { display: block; }
+        .delete-corner-btn:active { transform: scale(0.9); }
+
+        /* Renk kartı: dolgun daire, ince pembe-kırmızı çerçeve */
+        .delete-corner-btn.dc-color {
+            width: 27px; height: 27px; border-radius: 50%; background: #ffffff; color: #b0524f;
+            border: 1.5px solid #e3cfcd; font-size: 0.78rem; box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+        }
+        .delete-corner-btn.dc-color:active { background: #f7ecec; color: #8f3c3a; }
+
+        /* Parça kartı: yuvarlak köşeli kare, mat mavi-gri çerçeve */
+        .delete-corner-btn.dc-part {
+            width: 24px; height: 24px; border-radius: 8px; background: #ffffff; color: #5b7290;
+            border: 1.5px solid #ccd6e0; font-size: 0.7rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .delete-corner-btn.dc-part:active { background: #eaf0f6; color: #3f5670; }
+
+        /* Ebat kartı: çerçevesiz, en sade "ghost" stil */
+        .delete-corner-btn.dc-size {
+            width: 22px; height: 22px; border-radius: 6px; background: transparent; color: #9aa1ab; font-size: 0.68rem;
+        }
+        .delete-corner-btn.dc-size:active { background: rgba(176,82,79,0.12); color: #a3504d; }
+        .card-header-top { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+        .card-header-stats { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-left: 2px; }
+        .color-card-header .entity-name { font-size: 1.15rem; }
+        .part-card-header .entity-name { font-size: 1rem; }
+        .size-card-header .entity-name { font-size: 0.96rem; color: var(--accent); }
+        .entity-name-wrap { flex: 1 1 auto; display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .entity-name { font-weight: 700; font-size: 1.08rem; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .edit-name-btn { background: none; border: none; color: #5b6472; width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.88rem; opacity: 0.75; }
+        .edit-name-btn:active { background: rgba(0,0,0,0.08); opacity: 1; }
+        .edit-name-btn.confirm-btn { color: #1e8449; opacity: 1; animation: fieldAppear 0.22s ease; }
+        .edit-name-btn.confirm-btn:active { background: rgba(30,132,73,0.14); }
+        @keyframes fieldAppear { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .inline-edit-input { border: 2px solid var(--primary); border-radius: 8px; padding: 8px 10px; font-weight: 700; text-transform: uppercase; width: 100%; min-height: 42px; background: #fff; font-size: 1rem; animation: fieldAppear 0.22s ease; transition: border-color 0.15s ease, transform 0.15s ease; }
+        .inline-edit-input:focus { outline: none; border-color: var(--accent); }
+        .badge-total { background: rgba(255,255,255,0.65); color: #16304f; font-size: 0.72rem; font-weight: 700; padding: 5px 9px; border-radius: 14px; white-space: nowrap; line-height: 1.3; }
+        .icon-btn { background: none; border: none; color: #6b7280; font-size: 1.15rem; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .icon-btn:active { background: rgba(0,0,0,0.08); }
+        .icon-btn.delete-btn:active { color: #d9534f; background: rgba(217,83,79,0.12); }
+        .toggle-icon { font-size: 1.3rem; color: var(--primary); width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; transition: transform .2s; flex-shrink: 0; }
+        .toggle-icon.collapsed { transform: rotate(-90deg); }
+        .toggle-icon:active { background: rgba(0,0,0,0.08); }
+
+        .collapsible-body {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        .collapsible-body.open { max-height: 3000px; }
+
+        .parts-container { padding: 10px 10px 12px; background: rgba(255,255,255,0.35); }
+
+        /* Parça Kartı */
+        .part-card { background: var(--part-card-bg); border: 1.5px solid var(--part-card-border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; position: relative; }
+        .part-card-header .entity-name { font-size: 1rem; }
+        .sizes-container { padding: 8px 8px 10px; }
+
+        /* Ebat Kartı (isim kartı - tıklayınca açılır) */
+        .size-card { background: var(--size-card-bg); border: 1.5px solid var(--size-card-border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; position: relative; }
+        .size-card-header .entity-name { font-size: 0.96rem; color: var(--accent); }
+        .size-detail { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .thickness-select-row { display: flex; gap: 8px; }
+        .thickness-select-row.single { justify-content: center; }
+        .thickness-select-row.single .thickness-select-btn { flex: 0 1 220px; }
+        .card-header-stats.stats-center { justify-content: center; }
+        .thickness-empty-hint { text-align: center; color: #8a6d1f; background: #fff8e6; font-size: 0.8rem; padding: 10px; border-radius: 10px; }
+        .thickness-select-btn { flex: 1; border: 2px solid var(--border); border-radius: 10px; background: #f7f9fb; min-height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+        .thickness-select-btn:active { background: #e7edf3; transform: scale(0.97); }
+        .thickness-select-title { font-weight: 800; font-size: 1.05rem; color: var(--primary); }
+        .thickness-select-sub { font-size: 0.72rem; color: var(--secondary); text-align: center; line-height: 1.3; }
+        .btn-mini-action { min-height: 42px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; border: 1.5px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+        .btn-mini-action:active { background: #eef2f7; }
+        .btn-mini-action.history-mini { color: var(--accent); border-color: var(--accent); }
+
+        .btn-add-inline { width: 100%; min-height: 46px; border-radius: 10px; border: 2px dashed #b9c2cd; background: rgba(255,255,255,0.5); color: var(--secondary); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.92rem; }
+        .btn-add-inline:active { background: rgba(0,0,0,0.06); }
+
+        .toast-container { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 92vw; width: 420px; }
+        .toast-container .toast { transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1); transform: translateY(10px); }
+        .toast-container .toast.show { transform: translateY(0); }
+
+        /* Miktar Girme Modalı */
+        .qty-modal-info { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .qty-modal-info .badge-total { background: #eef2f7; color: var(--primary); font-size: 0.8rem; padding: 7px 12px; }
+        .qty-modal-mode { text-align: center; font-weight: 700; padding: 9px; border-radius: 10px; margin-bottom: 16px; font-size: 0.95rem; }
+        .qty-modal-mode.mode-incoming { background: #d4edda; color: #155724; }
+        .qty-modal-mode.mode-outgoing { background: #f8d7da; color: #721c24; }
+
+        /* Ebat Açıklama (Not) */
+        .note-btn { background: none; border: none; color: #9aa1ab; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+        .note-btn:active { background: rgba(0,0,0,0.08); }
+        .note-btn.has-note { color: #3d7ab5; }
+        .note-preview { display: inline-block; margin-top: 4px; background: #e5f1fb; color: #33627f; font-size: 0.72rem; font-style: italic; padding: 4px 9px; border-radius: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: max-height 0.2s ease, background-color 0.18s ease, transform 0.15s ease; max-height: 24px; }
+        .note-preview.expanded { white-space: normal; overflow: visible; text-overflow: unset; max-height: 400px; }
+        .note-textarea { width: 100%; border: 1.5px solid #ccc; border-radius: 10px; padding: 10px; font-size: 1rem; min-height: 100px; resize: vertical; }
+        .note-textarea:focus { outline: none; border-color: var(--primary); }
+        .qty-stepper { display: flex; align-items: stretch; gap: 8px; justify-content: center; }
+        .step-btn { width: 54px; min-height: 58px; border: 1.5px solid #ccc; border-radius: 10px; background: #f4f6f9; font-size: 1.3rem; font-weight: 700; color: #333; flex-shrink: 0; }
+        .step-btn:active { background: #dfe4ea; transform: scale(0.94); }
+        .qty-input { width: 120px; min-height: 58px; text-align: center; border: 1.5px solid #ccc; border-radius: 10px; font-size: 1.5rem; font-weight: 700; transition: transform 0.15s ease, border-color 0.15s ease; }
+        .qty-input.incoming-active { border-color: #27ae60; background: #f0fff4; }
+        .qty-input.outgoing-active { border-color: #e74c3c; background: #fff5f5; }
+
+        /* History */
+        .history-item { background: #f8fafc; border: 1.5px solid #e5e9ee; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .history-item:last-child { margin-bottom: 0; }
+        .history-row-main { display: flex; align-items: center; gap: 10px; }
+        .history-type-icon { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; }
+        .history-type-icon.incoming { background: #27ae60; }
+        .history-type-icon.outgoing { background: #e74c3c; }
+        .history-row-info { flex: 1; min-width: 0; }
+        .history-row-title { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+        .history-thickness-pill { display: inline-block; background: #eef2f7; color: var(--secondary); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+        .history-context-label { color: var(--primary); font-weight: 600; font-size: 0.78rem; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-archived-badge { background: #e2e3e5; color: #41464b; font-size: 0.64rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 4px; }
+        .history-list { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
+        .history-row-qty { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+        .history-qty-edit { width: 56px; min-height: 38px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; font-size: 0.95rem; transition: transform 0.15s ease; }
+        .history-qty-unit { font-size: 0.72rem; color: var(--secondary); }
+        .history-row-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #dbe0e6; }
+        .history-datetime-edit { flex: 1; min-width: 0; min-height: 36px; border-radius: 8px; border: 1.5px solid #ccc; padding: 4px 6px; font-size: 0.76rem; color: var(--secondary); transition: transform 0.15s ease; }
+        .history-row-controls { display: flex; gap: 4px; flex-shrink: 0; }
+        .history-move-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff; color: var(--secondary); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; }
+        .history-move-btn:active { background: #eef2f7; }
+        .history-move-btn:disabled { opacity: 0.25; }
+        .history-delete-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid #e3cfcd; background: #fff; color: #b0524f; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; }
+        .history-delete-btn:active { background: #f7ecec; }
+
+        .modal-dialog { margin: 1.2rem auto; max-width: 95%; }
+        .modal-content { border-radius: 14px; }
+        .modal.fade .modal-dialog { transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.2s ease; transform: translateY(16px) scale(0.98); opacity: 0; }
+        .modal.show .modal-dialog { transform: translateY(0) scale(1); opacity: 1; }
+        .modal-backdrop.fade { transition: opacity 0.16s ease; }
+        .modal-header { background: var(--primary); color: #fff; border-bottom: none; border-radius: 14px 14px 0 0; padding: 14px 18px; }
+        .modal-header .btn-close { filter: invert(1); }
+        .modal-footer { padding: 14px 18px; border-top: 1px solid var(--border); gap: 8px; }
+        .modal-body { padding: 18px; overscroll-behavior: contain; }
+        .modal-footer .btn { min-height: 50px; font-size: 1rem; flex: 1; }
+
+        .list-modal {
+            position: fixed; inset: 0; z-index: 1050; background-color: rgba(0,0,0,0);
+            display: flex; justify-content: center; align-items: flex-end;
+            opacity: 0; pointer-events: none; transition: opacity 0.18s ease, background-color 0.18s ease;
+        }
+        .list-modal.open { opacity: 1; pointer-events: auto; background-color: rgba(0,0,0,0.55); }
+        .list-modal-content { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; box-shadow: 0 -6px 24px rgba(0,0,0,0.25); overscroll-behavior: contain; transform: translateY(24px); transition: transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1); }
+        .list-modal.open .list-modal-content { transform: translateY(0); }
+        .list-modal-header { background: var(--primary); color: #fff; padding: 14px 18px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1; }
+        .list-modal-body { padding: 16px; }
+        .list-color-item { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .list-color-header { padding: 13px 15px; background: #f8fafc; font-weight: 700; display: flex; justify-content: space-between; align-items: center; min-height: 50px; }
+        .list-color-header:active { background: #edf2f7; }
+        .list-color-body { padding: 0 15px; max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+        .list-color-body.open { max-height: 800px; padding-bottom: 8px; }
+        .list-part-item { padding: 9px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .list-part-item:last-child { border-bottom: none; }
+        .list-part-info { flex: 1 1 auto; min-width: 0; }
+        .list-part-title { line-height: 1.35; }
+        .note-preview-list {
+            display: inline-block; margin-top: 4px; background: #e5f1fb; color: #33627f; font-size: 0.72rem; font-style: italic;
+            padding: 4px 9px; border-radius: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+            transition: max-height 0.2s ease, background-color 0.18s ease, transform 0.15s ease; max-height: 24px;
+        }
+        .note-preview-list.expanded { white-space: normal; overflow: visible; text-overflow: unset; max-height: 400px; }
+        .list-part-qty { display: flex; gap: 8px; font-size: 0.8rem; flex-shrink: 0; }
+        .list-part-qty.single { justify-content: center; min-width: 90px; }
+        .list-part-qty span { background: #eef2f7; padding: 3px 8px; border-radius: 12px; }
+        .btn-close-list { background: none; border: none; color: #fff; font-size: 1.4rem; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .btn-close-list:active { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <div class="container"><h1><i class="fas fa-chair"></i>Mobilya Parça Stok Takibi</h1></div>
+    </div>
+
+    <div class="container">
+        <div class="mode-buttons">
+            <button class="mode-btn active-incoming" id="modeIncomingBtn"><i class="fas fa-plus-circle me-2"></i>Ekle</button>
+            <button class="mode-btn" id="modeOutgoingBtn"><i class="fas fa-minus-circle me-2"></i>Çıkart</button>
+        </div>
+
+        <div class="toolbar" id="mainToolbar">
+            <div class="search-wrapper">
+                <button class="btn-tool" id="searchToggleBtn" title="Ara"><i class="fas fa-search"></i></button>
+                <input type="text" id="searchInput" class="search-input-hidden" placeholder="Renk / Parça / Ebat ara...">
+            </div>
+            <div class="toolbar-extra-buttons" id="toolbarExtraButtons">
+                <button class="btn-tool" id="exportBtn" title="Dışa Aktar (JSON)"><i class="fas fa-download"></i></button>
+                <button class="btn-tool" id="importBtn" title="İçe Aktar (JSON)"><i class="fas fa-upload"></i></button>
+                <button class="btn-tool" id="listBtn" title="Parça Bazlı Genel Bakış"><i class="fas fa-list"></i></button>
+                <button class="btn-tool" id="globalHistoryBtn" title="Tüm İşlem Geçmişi"><i class="fas fa-history"></i></button>
+                <button class="btn-tool excel" id="excelBtn" title="Excel Olarak İndir"><i class="fas fa-file-excel"></i></button>
+            </div>
+            <input type="file" id="importFileInput" accept=".json" style="display:none;">
+        </div>
+
+        <div id="searchHintBar" class="search-hint-bar" style="display:none;">
+            <i class="fas fa-info-circle"></i>
+            <span>Eşleşen sonuçları görmek için renk, sonra parça, sonra ebat kartına dokunun.</span>
+        </div>
+
+        <button class="btn-add-color-top" id="addColorTopBtn"><i class="fas fa-plus"></i> Yeni Renk Ekle</button>
+
+        <div id="colorsList"></div>
+
+        <div id="emptyState" class="empty-state" style="display:none;">
+            <i class="fas fa-box-open"></i>
+            <h4>Henüz renk eklenmemiş</h4>
+            <p>Yukarıdaki "Yeni Renk Ekle" butonuna basarak başlayın.</p>
+        </div>
+    </div>
+
+    <!-- Genel Bakış Modal -->
+    <div class="list-modal" id="listModal">
+        <div class="list-modal-content">
+            <div class="list-modal-header">
+                <h5><i class="fas fa-th-list me-2"></i>Parça Bazlı Genel Bakış</h5>
+                <button class="btn-close-list" id="closeListBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="list-modal-body" id="listModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Miktar Girme Modalı -->
+    <div class="modal fade" id="qtyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qtyModalLabel">Miktar Girişi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="qtyModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="qtyModalConfirmBtn">Onayla</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ebat Açıklama Modalı -->
+    <div class="modal fade" id="noteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteModalLabel">Açıklama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="noteModalTextarea" class="note-textarea" rows="4" maxlength="300" placeholder="Bu ebat için açıklama yazın..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="noteModalSaveBtn">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Genel (Tüm İşlemler) Geçmiş Modal -->
+    <div class="modal fade" id="globalHistoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Tüm İşlem Geçmişi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><div id="globalHistoryContent" class="history-list"></div></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geçmiş Modal -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="historyModalLabel">İşlem Geçmişi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><div id="historyContent" class="history-list"></div></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Silme Onay Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Silme Onayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><p id="deleteMessage"></p></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mod Değiştirme Onay Modal -->
+    <div class="modal fade" id="modeChangeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Mod Değiştirme Onayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><p id="modeChangeMessage"></p><p class="text-muted" id="modeChangeStepText"></p></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelModeChangeBtn">Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="confirmModeChangeBtn">Evet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2ySa8rmSWpbaX3U1BAlvGPuKAPTOmR9Q",
+            authDomain: "parca-stok-takip.firebaseapp.com",
+            databaseURL: "https://parca-stok-takip-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "parca-stok-takip",
+            storageBucket: "parca-stok-takip.firebasestorage.app",
+            messagingSenderId: "1042741158793",
+            appId: "1:1042741158793:web:471bf8a9ec4874d9a53758"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const dbRef = database.ref('inventory');
+        const archiveRef = database.ref('historyArchive');
+
+        (function () {
+            // ---------- STATE ----------
+            let inventory = [];
+            let searchTerm = '';
+            let currentMode = 'incoming';
+            let pendingModeChange = null, modeChangeStep = 0;
+            let pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null };
+            let historyArchive = []; // silinen ebatların geçmiş kayıtları (renk/parça/ebat silindiğinde de burada kalır)
+            let openColors = {};
+            let openParts = {};
+            let openSizes = {};
+            let lastToggledBodyId = null; // az önce açılıp/kapanan çekmecenin id'si (örn: 'cbody-color-xxx') - animasyonu sadece buna uygularız
+            let editing = {};
+            let focusAfterRender = null;
+            let scrollAfterRender = null;
+            let historyContext = { colorId: null, partId: null, sizeId: null };
+            let qtyModalContext = { colorId: null, partId: null, sizeId: null, thickness: null };
+            let noteModalContext = { colorId: null, partId: null, sizeId: null };
+
+            function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 6); }
+
+            // ---------- ARKA PLAN KAYDIRMA KİLİDİ (modal/pencere açıkken) ----------
+            // Not: sayfanın kaydırma konumunu asla değiştirmez (position:fixed kullanmaz),
+            // bu yüzden pencere kapanınca sayfa en yukarı sıçramaz, olduğu yerde kalır.
+            // Hem dokunmatik (touchmove) hem fare tekeri (wheel) olayları, pencerenin
+            // kendi içeriği dışında engellenir; böylece pencere içinde kaydırma sınırına
+            // ulaşıldığında olay arkadaki sayfaya "sızmaz" (scroll-chaining engellenir).
+            let scrollLockCount = 0;
+            function preventBackgroundScroll(e) {
+                if (e.target.closest('.modal-body, .modal-dialog, .list-modal-content')) return;
+                e.preventDefault();
+            }
+            function lockBodyScroll() {
+                scrollLockCount++;
+                if (scrollLockCount === 1) {
+                    document.documentElement.classList.add('scroll-locked');
+                    document.body.classList.add('scroll-locked');
+                    document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
+                    document.addEventListener('wheel', preventBackgroundScroll, { passive: false });
+                }
+            }
+            function unlockBodyScroll() {
+                if (scrollLockCount === 0) return;
+                scrollLockCount--;
+                if (scrollLockCount === 0) {
+                    document.documentElement.classList.remove('scroll-locked');
+                    document.body.classList.remove('scroll-locked');
+                    document.removeEventListener('touchmove', preventBackgroundScroll, { passive: false });
+                    document.removeEventListener('wheel', preventBackgroundScroll, { passive: false });
+                }
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const el = document.createElement('div');
+                el.className = `toast fade align-items-center text-white bg-${type} border-0`;
+                el.setAttribute('role', 'alert');
+                el.innerHTML = `<div class="d-flex"><div class="toast-body"><i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+                container.appendChild(el);
+                const t = new bootstrap.Toast(el, { delay: 2600 });
+                t.show();
+                el.addEventListener('hidden.bs.toast', () => el.remove());
+            }
+
+            function clamp(size) {
+                ['incoming18', 'outgoing18', 'incoming30', 'outgoing30'].forEach(k => {
+                    if (typeof size[k] !== 'number' || isNaN(size[k]) || size[k] < 0) size[k] = Math.max(0, size[k] || 0);
+                });
+            }
+
+            // ---------- HESAPLAMA ----------
+            function net18(s) { return (s.incoming18 || 0) - (s.outgoing18 || 0); }
+            function net30(s) { return (s.incoming30 || 0) - (s.outgoing30 || 0); }
+            function sizeNetTotal(s) { return net18(s) + net30(s); }
+            function partNetTotal(p) { return p.sizes.reduce((sum, s) => sum + sizeNetTotal(s), 0); }
+            function colorNetTotal(c) { return c.parts.reduce((sum, p) => sum + partNetTotal(p), 0); }
+            function lastQtyForThickness(size, thickness) {
+                const filtered = size.history.filter(h => h.thickness === thickness);
+                if (!filtered.length) return null;
+                return filtered.reduce((a, b) => (a.ts > b.ts ? a : b)).qty;
+            }
+
+            function findColor(colorId) { return inventory.find(c => c.id === colorId); }
+            function findPart(colorId, partId) { const c = findColor(colorId); return c ? c.parts.find(p => p.id === partId) : null; }
+            function findSize(colorId, partId, sizeId) { const p = findPart(colorId, partId); return p ? p.sizes.find(s => s.id === sizeId) : null; }
+
+            // ---------- NET STOK 0'A DÜŞÜNCE KADEMELİ OTOMATİK SİLME ----------
+            function cascadeDeleteIfZero(colorId, partId, sizeId) {
+                const result = { sizeDeleted: false, sizeName: '', partDeleted: false, partName: '', colorDeleted: false, colorName: '' };
+                const size = findSize(colorId, partId, sizeId);
+                if (!size || sizeNetTotal(size) !== 0) return result;
+
+                const part = findPart(colorId, partId);
+                if (!part) return result;
+                const color = findColor(colorId);
+
+                result.sizeDeleted = true;
+                result.sizeName = size.name || 'İsimsiz Ebat';
+                result.partName = part.name || 'İsimsiz Parça';
+                result.colorName = color ? (color.name || 'İsimsiz Renk') : 'İsimsiz Renk';
+
+                // Silinen ebatın işlem geçmişini kalıcı arşive taşı (Genel Geçmiş'te görünmeye devam etsin)
+                (size.history || []).forEach(h => {
+                    historyArchive.push({
+                        id: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts,
+                        order: (h.order !== undefined && h.order !== null) ? h.order : h.ts,
+                        colorName: result.colorName, partName: result.partName, sizeName: result.sizeName
+                    });
+                });
+                if ((size.history || []).length) saveArchiveToFirebase();
+
+                part.sizes = part.sizes.filter(s => s.id !== sizeId);
+
+                if (part.sizes.length === 0) {
+                    if (color) {
+                        result.partDeleted = true;
+                        color.parts = color.parts.filter(p => p.id !== partId);
+
+                        if (color.parts.length === 0) {
+                            result.colorDeleted = true;
+                            inventory = inventory.filter(c => c.id !== colorId);
+                        }
+                    }
+                }
+                return result;
+            }
+            function notifyCascadeDelete(result) {
+                if (!result.sizeDeleted) return;
+                let msg = `"${result.sizeName}" ebatı stok 0'a düştüğü için otomatik silindi (geçmişi Genel Geçmiş'te saklanıyor).`;
+                if (result.partDeleted) msg += ` "${result.partName}" parçasında başka ebat kalmadığı için o da silindi.`;
+                if (result.colorDeleted) msg += ` "${result.colorName}" renginde başka parça kalmadığı için o da silindi.`;
+                showToast(msg, 'info');
+            }
+
+            // ---------- FIREBASE / VERİ GÖÇÜ ----------
+            function isLegacyFormat(data) {
+                return Array.isArray(data) && data.length > 0 && data[0] && Array.isArray(data[0].colors) && !Array.isArray(data[0].parts);
+            }
+            function migrateLegacy(oldData) {
+                const newInv = [];
+                oldData.forEach(oldPart => {
+                    (oldPart.colors || []).forEach(oldColor => {
+                        const cName = (oldColor.name || '').toUpperCase();
+                        let colorEntry = newInv.find(c => c.name === cName);
+                        if (!colorEntry) { colorEntry = { id: generateId(), name: cName, parts: [] }; newInv.push(colorEntry); }
+                        const legacyHistory = (oldColor.history || []).map(h => {
+                            const ts = h.timestamp ? new Date(h.timestamp).getTime() : Date.now();
+                            return {
+                                id: generateId(), type: h.type === 'incoming' ? 'incoming' : 'outgoing',
+                                thickness: (h.thickness == 30) ? 30 : 18, qty: h.miktar || h.qty || 0,
+                                ts: ts, order: ts
+                            };
+                        });
+                        const sizeEntry = {
+                            id: generateId(), name: 'GENEL',
+                            incoming18: oldColor.incoming18 || 0, outgoing18: oldColor.outgoing18 || 0,
+                            incoming30: oldColor.incoming30 || 0, outgoing30: oldColor.outgoing30 || 0,
+                            history: legacyHistory, note: ''
+                        };
+                        colorEntry.parts.push({ id: generateId(), name: (oldPart.name || '').toUpperCase(), sizes: [sizeEntry] });
+                    });
+                });
+                return newInv;
+            }
+            function normalizeInventory(data) {
+                if (!Array.isArray(data)) return [];
+                data.forEach(c => {
+                    if (!c.id) c.id = generateId();
+                    if (typeof c.name !== 'string') c.name = '';
+                    if (!Array.isArray(c.parts)) c.parts = [];
+                    c.parts.forEach(p => {
+                        if (!p.id) p.id = generateId();
+                        if (typeof p.name !== 'string') p.name = '';
+                        if (!Array.isArray(p.sizes)) p.sizes = [];
+                        p.sizes.forEach(s => {
+                            if (!s.id) s.id = generateId();
+                            if (typeof s.name !== 'string') s.name = '';
+                            if (typeof s.note !== 'string') s.note = '';
+                            ['incoming18', 'outgoing18', 'incoming30', 'outgoing30'].forEach(k => { if (typeof s[k] !== 'number') s[k] = 0; });
+                            if (!Array.isArray(s.history)) s.history = [];
+                            s.history.forEach(h => {
+                                if (!h.id) h.id = generateId();
+                                if (h.order === undefined || h.order === null) h.order = h.ts || Date.now();
+                            });
+                        });
+                    });
+                });
+                return data;
+            }
+            function initFirebaseListener() {
+                dbRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) { inventory = []; }
+                    else if (isLegacyFormat(data)) {
+                        inventory = migrateLegacy(data);
+                        saveToFirebase();
+                        showToast('Eski veri yapısı yeni sürüme otomatik olarak taşındı.', 'info');
+                    } else { inventory = normalizeInventory(data); }
+                    render();
+                }, (error) => { console.error(error); showToast('Veritabanına bağlanılamadı.', 'danger'); });
+            }
+            function saveToFirebase() {
+                dbRef.set(inventory).catch(err => { console.error(err); showToast('Veriler kaydedilemedi.', 'danger'); });
+            }
+            function initArchiveListener() {
+                archiveRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    historyArchive = Array.isArray(data) ? data : [];
+                }, (error) => { console.error('Arşiv okuma hatası:', error); });
+            }
+            function saveArchiveToFirebase() {
+                archiveRef.set(historyArchive).catch(err => console.error('Arşiv yazma hatası:', err));
+            }
+
+            // ---------- EKLEME ----------
+            function addColor() {
+                const id = generateId();
+                inventory.push({ id, name: '', parts: [] });
+                openColors[id] = true;
+                editing['color:' + id] = true;
+                focusAfterRender = `.inline-edit-input[data-type="color"][data-color-id="${id}"]`;
+                scrollAfterRender = 'color-card-' + id;
+                saveToFirebase(); render();
+            }
+            function addPart(colorId) {
+                const c = findColor(colorId); if (!c) return;
+                const id = generateId();
+                c.parts.push({ id, name: '', sizes: [] });
+                openColors[colorId] = true; openParts[id] = true;
+                editing['part:' + id] = true;
+                focusAfterRender = `.inline-edit-input[data-type="part"][data-part-id="${id}"]`;
+                saveToFirebase(); render();
+            }
+            function addSize(colorId, partId) {
+                const p = findPart(colorId, partId); if (!p) return;
+                const id = generateId();
+                p.sizes.push({ id, name: '', incoming18: 0, outgoing18: 0, incoming30: 0, outgoing30: 0, history: [], note: '' });
+                openParts[partId] = true; openSizes[id] = true;
+                editing['size:' + id] = true;
+                focusAfterRender = `.inline-edit-input[data-type="size"][data-size-id="${id}"]`;
+                saveToFirebase(); render();
+            }
+
+            // ---------- İSİM DÜZENLEME (yalnızca Onayla ile kaydolur) ----------
+            function startEdit(type, colorId, partId, sizeId) {
+                const id = type === 'color' ? colorId : type === 'part' ? partId : sizeId;
+                editing[type + ':' + id] = true;
+                focusAfterRender = `.inline-edit-input[data-type="${type}"][data-${type}-id="${id}"]`;
+                render();
+            }
+            function saveNameEdit(type, colorId, partId, sizeId, newVal) {
+                const id = type === 'color' ? colorId : type === 'part' ? partId : sizeId;
+                const upper = (newVal || '').trim().toUpperCase();
+
+                if (upper) {
+                    if (type === 'color') {
+                        const dup = inventory.some(c => c.id !== colorId && (c.name || '').toUpperCase() === upper);
+                        if (dup) { showToast(`"${upper}" isimli bir renk zaten mevcut. Lütfen farklı bir isim girin.`, 'danger'); return; }
+                    } else if (type === 'part') {
+                        const c = findColor(colorId);
+                        const dup = c && c.parts.some(p => p.id !== partId && (p.name || '').toUpperCase() === upper);
+                        if (dup) { showToast(`Bu rengin altında "${upper}" isimli bir parça zaten mevcut. Lütfen farklı bir isim girin.`, 'danger'); return; }
+                    } else if (type === 'size') {
+                        const p = findPart(colorId, partId);
+                        const dup = p && p.sizes.some(s => s.id !== sizeId && (s.name || '').toUpperCase() === upper);
+                        if (dup) { showToast(`Bu parçanın altında "${upper}" isimli bir ebat zaten mevcut. Lütfen farklı bir isim girin.`, 'danger'); return; }
+                    }
+                }
+
+                if (type === 'color') { const c = findColor(colorId); if (c) c.name = upper; }
+                else if (type === 'part') { const p = findPart(colorId, partId); if (p) p.name = upper; }
+                else if (type === 'size') { const s = findSize(colorId, partId, sizeId); if (s) s.name = upper; }
+                delete editing[type + ':' + id];
+                saveToFirebase(); render();
+            }
+
+            // ---------- MİKTAR GİRİŞİ (MODAL) ----------
+            function openQtyModal(colorId, partId, sizeId, thickness) {
+                qtyModalContext = { colorId, partId, sizeId, thickness };
+                renderQtyModal();
+                new bootstrap.Modal(document.getElementById('qtyModal')).show();
+            }
+            function renderQtyModal() {
+                const { colorId, partId, sizeId, thickness } = qtyModalContext;
+                const s = findSize(colorId, partId, sizeId); if (!s) return;
+                const isIncoming = currentMode === 'incoming';
+                const net = thickness === 18 ? net18(s) : net30(s);
+                const last = lastQtyForThickness(s, thickness);
+                document.getElementById('qtyModalLabel').textContent = `${s.name || 'Ebat'} — ${thickness}mm`;
+                document.getElementById('qtyModalBody').innerHTML = `
+                    <div class="qty-modal-info">
+                        <span class="badge-total">Mevcut Stok: ${net}</span>
+                        <span class="badge-total">Son Girilen: ${last !== null ? last + ' adet' : '—'}</span>
+                    </div>
+                    <div class="qty-modal-mode ${isIncoming ? 'mode-incoming' : 'mode-outgoing'}">
+                        <i class="fas ${isIncoming ? 'fa-plus-circle' : 'fa-minus-circle'} me-1"></i>
+                        ${isIncoming ? 'GİRİŞ (Ekle) modundasınız' : 'ÇIKIŞ (Çıkart) modundasınız'}
+                    </div>
+                    <div class="qty-stepper">
+                        <button class="step-btn" id="qtyModalMinus" type="button"><i class="fas fa-minus"></i></button>
+                        <input type="number" inputmode="numeric" id="qtyModalInput" class="qty-input ${isIncoming ? 'incoming-active' : 'outgoing-active'}" value="0" min="0">
+                        <button class="step-btn" id="qtyModalPlus" type="button"><i class="fas fa-plus"></i></button>
+                    </div>`;
+                document.getElementById('qtyModalMinus').addEventListener('click', () => stepQtyModalInput(-1));
+                document.getElementById('qtyModalPlus').addEventListener('click', () => stepQtyModalInput(1));
+                const qtyInputEl = document.getElementById('qtyModalInput');
+                qtyInputEl.addEventListener('focus', function () { this.select(); });
+                qtyInputEl.addEventListener('input', function () {
+                    if (this.value.length > 1 && this.value.charAt(0) === '0') {
+                        this.value = this.value.replace(/^0+/, '') || '0';
+                    }
+                });
+            }
+            function stepQtyModalInput(dir) {
+                const input = document.getElementById('qtyModalInput');
+                let val = parseInt(input.value, 10); if (isNaN(val)) val = 0;
+                val += dir; if (val < 0) val = 0;
+                input.value = val;
+            }
+            function confirmQtyModal() {
+                const { colorId, partId, sizeId, thickness } = qtyModalContext;
+                const input = document.getElementById('qtyModalInput');
+                const qty = parseInt(input.value, 10);
+                if (isNaN(qty) || qty <= 0) { showToast('Lütfen geçerli bir miktar girin.', 'warning'); return; }
+
+                const isIncoming = currentMode === 'incoming';
+                if (!isIncoming) {
+                    const size = findSize(colorId, partId, sizeId);
+                    if (size) {
+                        const currentNet = thickness === 18 ? net18(size) : net30(size);
+                        if (qty > currentNet) {
+                            showToast(`Yetersiz stok! ${thickness}mm için mevcut stok ${currentNet} adet, ${qty} adet çıkartılamaz.`, 'danger');
+                            return;
+                        }
+                    }
+                }
+
+                handleTransaction(colorId, partId, sizeId, thickness, qty);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('qtyModal'));
+                if (modal) modal.hide();
+            }
+
+            // ---------- EBAT AÇIKLAMASI (NOT) ----------
+            function openNoteModal(colorId, partId, sizeId) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return;
+                noteModalContext = { colorId, partId, sizeId };
+                document.getElementById('noteModalLabel').textContent = `${size.name || 'Ebat'} — Açıklama`;
+                document.getElementById('noteModalTextarea').value = size.note || '';
+                new bootstrap.Modal(document.getElementById('noteModal')).show();
+            }
+            function saveNoteModal() {
+                const { colorId, partId, sizeId } = noteModalContext;
+                const size = findSize(colorId, partId, sizeId); if (!size) return;
+                const val = document.getElementById('noteModalTextarea').value.trim();
+                size.note = val;
+                saveToFirebase();
+                render();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('noteModal'));
+                if (modal) modal.hide();
+                showToast(val ? 'Açıklama kaydedildi.' : 'Açıklama temizlendi.', 'success');
+            }
+            function handleTransaction(colorId, partId, sizeId, thickness, qty) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return;
+                const isIncoming = currentMode === 'incoming';
+                const now = Date.now();
+                const entry = { id: generateId(), type: isIncoming ? 'incoming' : 'outgoing', thickness: thickness, qty: qty, ts: now, order: now };
+                if (isIncoming) { if (thickness === 18) size.incoming18 += qty; else size.incoming30 += qty; }
+                else { if (thickness === 18) size.outgoing18 += qty; else size.outgoing30 += qty; }
+                size.history.push(entry);
+                const cascade = cascadeDeleteIfZero(colorId, partId, sizeId);
+                saveToFirebase(); render();
+                if (cascade.sizeDeleted) { notifyCascadeDelete(cascade); }
+                else { showToast(`${thickness}mm için ${qty} adet ${isIncoming ? 'giriş' : 'çıkış'} kaydedildi.`, 'success'); }
+            }
+
+            // ---------- TARİH/SAAT DÖNÜŞÜM YARDIMCILARI ----------
+            function tsToDatetimeLocal(ts) {
+                const d = new Date(ts);
+                const pad = n => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            }
+            function datetimeLocalToTs(str) {
+                if (!str) return null;
+                const d = new Date(str);
+                return isNaN(d.getTime()) ? null : d.getTime();
+            }
+
+            // ---------- GEÇMİŞ: ORTAK DÜZENLEME MANTIĞI (canlı ebatlar için) ----------
+            function applyHistoryQtyEdit(colorId, partId, sizeId, entryId, newQty) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return { success: false };
+                const entry = size.history.find(h => h.id === entryId); if (!entry) return { success: false };
+                newQty = parseInt(newQty, 10);
+                if (isNaN(newQty) || newQty < 0) return { success: false, invalid: true };
+                const delta = newQty - entry.qty;
+                if (delta === 0) return { success: true, changed: false };
+                let ni18 = size.incoming18, no18 = size.outgoing18, ni30 = size.incoming30, no30 = size.outgoing30;
+                if (entry.type === 'incoming') { if (entry.thickness === 18) ni18 += delta; else ni30 += delta; }
+                else { if (entry.thickness === 18) no18 += delta; else no30 += delta; }
+                if ((ni18 - no18) < 0 || (ni30 - no30) < 0) return { success: false, blocked: true };
+                size.incoming18 = ni18; size.outgoing18 = no18; size.incoming30 = ni30; size.outgoing30 = no30;
+                entry.qty = newQty;
+                clamp(size);
+                const cascade = cascadeDeleteIfZero(colorId, partId, sizeId);
+                saveToFirebase();
+                return { success: true, changed: true, cascade: cascade };
+            }
+            function applyHistoryTimestampEdit(colorId, partId, sizeId, entryId, newVal) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return false;
+                const entry = size.history.find(h => h.id === entryId); if (!entry) return false;
+                const newTs = datetimeLocalToTs(newVal);
+                if (newTs === null) return false;
+                entry.ts = newTs;
+                saveToFirebase();
+                return true;
+            }
+
+            // ---------- EBAT GEÇMİŞİ (tek ebat penceresi) ----------
+            function editHistoryQty(colorId, partId, sizeId, entryId, newQty) {
+                const result = applyHistoryQtyEdit(colorId, partId, sizeId, entryId, newQty);
+                if (!result.success) {
+                    if (result.blocked) showToast('Bu değişiklik stoğu negatife düşürür, izin verilmiyor.', 'danger');
+                    render(); renderHistoryModal(); return;
+                }
+                if (result.changed) {
+                    if (result.cascade && result.cascade.sizeDeleted) {
+                        notifyCascadeDelete(result.cascade);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('historyModal'));
+                        if (modal) modal.hide();
+                        render(); return;
+                    }
+                    showToast('Geçmiş kaydı güncellendi.', 'success');
+                }
+                render(); renderHistoryModal();
+            }
+            function editHistoryTimestamp(colorId, partId, sizeId, entryId, newVal) {
+                if (applyHistoryTimestampEdit(colorId, partId, sizeId, entryId, newVal)) showToast('Tarih/saat güncellendi.', 'success');
+                render(); renderHistoryModal();
+            }
+            function moveHistoryEntry(colorId, partId, sizeId, entryId, direction) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return;
+                const sorted = [...size.history].sort((a, b) => (b.order ?? b.ts) - (a.order ?? a.ts));
+                const idx = sorted.findIndex(h => h.id === entryId);
+                if (idx === -1) return;
+                const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+                if (swapIdx < 0 || swapIdx >= sorted.length) return;
+                const a = sorted[idx], b = sorted[swapIdx];
+                const tmp = (a.order ?? a.ts); a.order = (b.order ?? b.ts); b.order = tmp;
+                saveToFirebase();
+                renderHistoryModal();
+            }
+            function requestDeleteHistoryEntry(entryId, sourceModal) {
+                pendingDelete = { type: 'history', colorId: historyContext.colorId, partId: historyContext.partId, sizeId: historyContext.sizeId, entryId, sourceModal: sourceModal || 'size' };
+                document.getElementById('deleteMessage').textContent = 'Bu geçmiş kaydını silmek istediğinize emin misiniz? Kayda ait miktar stoktan geri çıkarılacak.';
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+            function deleteHistoryEntry(colorId, partId, sizeId, entryId) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return null;
+                const entry = size.history.find(h => h.id === entryId); if (!entry) return null;
+                let ni18 = size.incoming18, no18 = size.outgoing18, ni30 = size.incoming30, no30 = size.outgoing30;
+                if (entry.type === 'incoming') { if (entry.thickness === 18) ni18 -= entry.qty; else ni30 -= entry.qty; }
+                else { if (entry.thickness === 18) no18 -= entry.qty; else no30 -= entry.qty; }
+                if ((ni18 - no18) < 0 || (ni30 - no30) < 0) {
+                    showToast('Bu kayıt silinirse stok negatife düşer, izin verilmiyor.', 'danger');
+                    return { blocked: true };
+                }
+                size.incoming18 = ni18; size.outgoing18 = no18; size.incoming30 = ni30; size.outgoing30 = no30;
+                clamp(size);
+                size.history = size.history.filter(h => h.id !== entryId);
+                const cascade = cascadeDeleteIfZero(colorId, partId, sizeId);
+                saveToFirebase();
+                if (cascade.sizeDeleted) { notifyCascadeDelete(cascade); }
+                else { showToast('Geçmiş kaydı silindi.', 'success'); }
+                render();
+                return cascade;
+            }
+
+            // ---------- ARŞİV (silinmiş ebatların geçmişi) DÜZENLEME/SİLME ----------
+            function findArchiveEntry(entryId) { return historyArchive.find(h => h.id === entryId); }
+            function editArchiveEntryQty(entryId, newQty) {
+                const entry = findArchiveEntry(entryId); if (!entry) return;
+                newQty = parseInt(newQty, 10);
+                if (isNaN(newQty) || newQty < 0) { renderGlobalHistoryModal(); return; }
+                entry.qty = newQty;
+                saveArchiveToFirebase();
+                showToast('Arşivlenmiş kayıt güncellendi.', 'success');
+                renderGlobalHistoryModal();
+            }
+            function editArchiveEntryTimestamp(entryId, newVal) {
+                const entry = findArchiveEntry(entryId); if (!entry) return;
+                const newTs = datetimeLocalToTs(newVal);
+                if (newTs === null) { renderGlobalHistoryModal(); return; }
+                entry.ts = newTs;
+                saveArchiveToFirebase();
+                showToast('Tarih/saat güncellendi.', 'success');
+                renderGlobalHistoryModal();
+            }
+            function deleteArchiveEntry(entryId) {
+                historyArchive = historyArchive.filter(h => h.id !== entryId);
+                saveArchiveToFirebase();
+                showToast('Arşivlenmiş kayıt silindi.', 'success');
+                renderGlobalHistoryModal();
+            }
+            function requestDeleteGlobalEntry(entryId, archived, colorId, partId, sizeId) {
+                if (archived) {
+                    pendingDelete = { type: 'archive-history', colorId: null, partId: null, sizeId: null, entryId, sourceModal: 'global' };
+                    document.getElementById('deleteMessage').textContent = 'Bu arşivlenmiş geçmiş kaydını kalıcı olarak silmek istediğinize emin misiniz?';
+                } else {
+                    pendingDelete = { type: 'history', colorId, partId, sizeId, entryId, sourceModal: 'global' };
+                    document.getElementById('deleteMessage').textContent = 'Bu geçmiş kaydını silmek istediğinize emin misiniz? Kayda ait miktar stoktan geri çıkarılacak.';
+                }
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+
+            // ---------- GEÇMİŞ SATIRI ORTAK ŞABLONU ----------
+            function renderHistoryEntryRow(e, showContext, isFirst, isLast) {
+                const dateVal = tsToDatetimeLocal(e.ts);
+                const isIncoming = e.type === 'incoming';
+                const typeText = isIncoming ? 'Giriş' : 'Çıkış';
+                const iconClass = isIncoming ? 'incoming' : 'outgoing';
+                const iconGlyph = isIncoming ? 'fa-arrow-down' : 'fa-arrow-up';
+                const contextHtml = showContext
+                    ? `<div class="history-context-label"><i class="fas fa-layer-group me-1"></i>${escapeHtml(e.colorName)} / ${escapeHtml(e.partName)} / ${escapeHtml(e.sizeName)}${e.archived ? ' <span class="history-archived-badge">Silinmiş öğe</span>' : ''}</div>`
+                    : '';
+                return `<div class="history-item" data-entry-id="${e.entryId}" data-color-id="${e.colorId || ''}" data-part-id="${e.partId || ''}" data-size-id="${e.sizeId || ''}" data-archived="${e.archived ? '1' : '0'}">
+                    <div class="history-row-main">
+                        <div class="history-type-icon ${iconClass}"><i class="fas ${iconGlyph}"></i></div>
+                        <div class="history-row-info">
+                            <div class="history-row-title">${typeText}<span class="history-thickness-pill">${e.thickness}mm</span></div>
+                            ${contextHtml}
+                        </div>
+                        <div class="history-row-qty">
+                            <input type="number" min="0" inputmode="numeric" class="history-qty-edit" value="${e.qty}">
+                            <span class="history-qty-unit">adet</span>
+                        </div>
+                    </div>
+                    <div class="history-row-footer">
+                        <input type="datetime-local" class="history-datetime-edit" value="${dateVal}">
+                        <div class="history-row-controls">
+                            <button class="history-move-btn" data-move="up" ${isFirst ? 'disabled' : ''} title="Yukarı Taşı"><i class="fas fa-chevron-up"></i></button>
+                            <button class="history-move-btn" data-move="down" ${isLast ? 'disabled' : ''} title="Aşağı Taşı"><i class="fas fa-chevron-down"></i></button>
+                            <button class="history-delete-btn" title="Sil"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            function renderHistoryModal() {
+                const { colorId, partId, sizeId } = historyContext;
+                const c = findColor(colorId), p = c ? c.parts.find(x => x.id === partId) : null, s = findSize(colorId, partId, sizeId);
+                if (!c || !p || !s) return;
+                document.getElementById('historyModalLabel').textContent = `${c.name || 'RENK'} / ${p.name || 'PARÇA'} / ${s.name || 'EBAT'} — Geçmiş`;
+                const content = document.getElementById('historyContent');
+                if (!s.history.length) { content.innerHTML = '<p class="text-muted text-center py-3">Henüz işlem kaydı yok.</p>'; return; }
+                const sorted = [...s.history].sort((a, b) => (b.order ?? b.ts) - (a.order ?? a.ts));
+                content.innerHTML = sorted.map((e, i) => renderHistoryEntryRow(
+                    { entryId: e.id, type: e.type, thickness: e.thickness, qty: e.qty, ts: e.ts },
+                    false, i === 0, i === sorted.length - 1
+                )).join('');
+            }
+
+            // ---------- GENEL (TÜM İŞLEMLER) GEÇMİŞ ----------
+            function buildGlobalHistoryEntries() {
+                const allEntries = [];
+                inventory.forEach(c => c.parts.forEach(p => p.sizes.forEach(s => {
+                    (s.history || []).forEach(h => allEntries.push({
+                        entryId: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts, order: (h.order ?? h.ts),
+                        colorId: c.id, partId: p.id, sizeId: s.id,
+                        colorName: c.name || 'İsimsiz Renk', partName: p.name || 'İsimsiz Parça', sizeName: s.name || 'İsimsiz Ebat',
+                        archived: false
+                    }));
+                })));
+                historyArchive.forEach(h => allEntries.push({
+                    entryId: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts, order: (h.order ?? h.ts),
+                    colorId: null, partId: null, sizeId: null,
+                    colorName: h.colorName, partName: h.partName, sizeName: h.sizeName,
+                    archived: true
+                }));
+                allEntries.sort((a, b) => b.order - a.order);
+                return allEntries;
+            }
+            function editGlobalHistoryQty(colorId, partId, sizeId, entryId, newQty) {
+                const result = applyHistoryQtyEdit(colorId, partId, sizeId, entryId, newQty);
+                if (!result.success) {
+                    if (result.blocked) showToast('Bu değişiklik stoğu negatife düşürür, izin verilmiyor.', 'danger');
+                    render(); renderGlobalHistoryModal(); return;
+                }
+                if (result.changed) {
+                    if (result.cascade && result.cascade.sizeDeleted) notifyCascadeDelete(result.cascade);
+                    else showToast('Geçmiş kaydı güncellendi.', 'success');
+                }
+                render(); renderGlobalHistoryModal();
+            }
+            function editGlobalHistoryTimestamp(colorId, partId, sizeId, entryId, newVal) {
+                if (applyHistoryTimestampEdit(colorId, partId, sizeId, entryId, newVal)) showToast('Tarih/saat güncellendi.', 'success');
+                render(); renderGlobalHistoryModal();
+            }
+            function setEntryOrder(entryRef, newOrder) {
+                if (entryRef.archived) {
+                    const e = findArchiveEntry(entryRef.entryId); if (e) e.order = newOrder;
+                } else {
+                    const size = findSize(entryRef.colorId, entryRef.partId, entryRef.sizeId);
+                    if (size) { const h = size.history.find(x => x.id === entryRef.entryId); if (h) h.order = newOrder; }
+                }
+            }
+            function moveGlobalHistoryEntry(entryId, direction) {
+                const list = buildGlobalHistoryEntries();
+                const idx = list.findIndex(e => e.entryId === entryId);
+                if (idx === -1) return;
+                const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+                if (swapIdx < 0 || swapIdx >= list.length) return;
+                const a = list[idx], b = list[swapIdx];
+                const aOrder = a.order, bOrder = b.order;
+                setEntryOrder(a, bOrder);
+                setEntryOrder(b, aOrder);
+                saveToFirebase(); saveArchiveToFirebase();
+                renderGlobalHistoryModal();
+            }
+            function renderGlobalHistoryModal() {
+                const allEntries = buildGlobalHistoryEntries();
+                const content = document.getElementById('globalHistoryContent');
+                if (!allEntries.length) { content.innerHTML = '<p class="text-muted text-center py-3">Henüz işlem kaydı yok.</p>'; return; }
+                content.innerHTML = allEntries.map((e, i) => renderHistoryEntryRow(e, true, i === 0, i === allEntries.length - 1)).join('');
+            }
+
+            // ---------- SİLME ----------
+            function requestDelete(type, colorId, partId, sizeId) {
+                pendingDelete = { type, colorId, partId, sizeId, entryId: null, sourceModal: null };
+                let msg = '';
+                if (type === 'color') { const c = findColor(colorId); msg = `"${c ? c.name || 'İsimsiz Renk' : ''}" rengini ve içindeki tüm parça/ebatları silmek istediğinize emin misiniz?`; }
+                else if (type === 'part') { const p = findPart(colorId, partId); msg = `"${p ? p.name || 'İsimsiz Parça' : ''}" parçasını ve tüm ebatlarını silmek istediğinize emin misiniz?`; }
+                else if (type === 'size') { const s = findSize(colorId, partId, sizeId); msg = `"${s ? s.name || 'İsimsiz Ebat' : ''}" ebatını silmek istediğinize emin misiniz?`; }
+                document.getElementById('deleteMessage').textContent = msg;
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+            function archiveSizeHistoryRecords(colorName, partName, size) {
+                (size.history || []).forEach(h => {
+                    historyArchive.push({
+                        id: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts,
+                        order: (h.order !== undefined && h.order !== null) ? h.order : h.ts,
+                        colorName: colorName, partName: partName, sizeName: size.name || 'İsimsiz Ebat'
+                    });
+                });
+            }
+            function performDelete() {
+                const { type, colorId, partId, sizeId, entryId, sourceModal } = pendingDelete;
+                let archivedAny = false;
+                if (type === 'color') {
+                    const c = findColor(colorId);
+                    if (c) {
+                        c.parts.forEach(p => p.sizes.forEach(s => { archiveSizeHistoryRecords(c.name || 'İsimsiz Renk', p.name || 'İsimsiz Parça', s); archivedAny = true; }));
+                        inventory = inventory.filter(cc => cc.id !== colorId);
+                    }
+                    showToast('Renk silindi.', 'success');
+                }
+                else if (type === 'part') {
+                    const c = findColor(colorId); const p = findPart(colorId, partId);
+                    if (c && p) {
+                        p.sizes.forEach(s => { archiveSizeHistoryRecords(c.name || 'İsimsiz Renk', p.name || 'İsimsiz Parça', s); archivedAny = true; });
+                        c.parts = c.parts.filter(pp => pp.id !== partId);
+                    }
+                    showToast('Parça silindi.', 'success');
+                }
+                else if (type === 'size') {
+                    const c = findColor(colorId); const p = findPart(colorId, partId); const s = findSize(colorId, partId, sizeId);
+                    if (c && p && s) {
+                        archiveSizeHistoryRecords(c.name || 'İsimsiz Renk', p.name || 'İsimsiz Parça', s);
+                        archivedAny = true;
+                        p.sizes = p.sizes.filter(ss => ss.id !== sizeId);
+                    }
+                    showToast('Ebat silindi.', 'success');
+                }
+                else if (type === 'history') {
+                    const cascade = deleteHistoryEntry(colorId, partId, sizeId, entryId);
+                    if (sourceModal === 'global') {
+                        renderGlobalHistoryModal();
+                    } else if (cascade && cascade.sizeDeleted) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('historyModal'));
+                        if (modal) modal.hide();
+                    } else if (findSize(colorId, partId, sizeId)) {
+                        renderHistoryModal();
+                    }
+                }
+                else if (type === 'archive-history') {
+                    deleteArchiveEntry(entryId);
+                }
+                pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null };
+                if (archivedAny) saveArchiveToFirebase();
+                saveToFirebase(); render();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                if (modal) modal.hide();
+            }
+
+            // ---------- KADEMELİ AÇMA/KAPAMA ----------
+            function closePartsAndSizesUnderColor(c) {
+                c.parts.forEach(p => { delete openParts[p.id]; p.sizes.forEach(s => delete openSizes[s.id]); });
+            }
+            function closeSizesUnderPart(p) { p.sizes.forEach(s => delete openSizes[s.id]); }
+
+            // ---------- ARAMA (kademeli / drill-down) ----------
+            function buildRenderModel() {
+                const term = searchTerm.trim().toLowerCase();
+                if (!term) return inventory.map(c => ({ color: c, parts: c.parts.map(p => ({ part: p, sizes: p.sizes })) }));
+                const result = [];
+                inventory.forEach(c => {
+                    const colorMatch = (c.name || '').toLowerCase().includes(term);
+                    const parts = [];
+                    c.parts.forEach(p => {
+                        const partMatch = (p.name || '').toLowerCase().includes(term);
+                        const sizeMatches = p.sizes.filter(s => (s.name || '').toLowerCase().includes(term));
+                        if (colorMatch || partMatch || sizeMatches.length) {
+                            parts.push({ part: p, sizes: (colorMatch || partMatch) ? p.sizes : sizeMatches });
+                        }
+                    });
+                    if (colorMatch || parts.length) result.push({ color: c, parts });
+                });
+                return result;
+            }
+
+            // ---------- RENDER ----------
+            function render() {
+                const container = document.getElementById('colorsList');
+                const emptyState = document.getElementById('emptyState');
+                const hintBar = document.getElementById('searchHintBar');
+                const model = buildRenderModel();
+                const isSearching = !!searchTerm.trim();
+                hintBar.style.display = isSearching ? 'flex' : 'none';
+
+                if (inventory.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = '<i class="fas fa-box-open"></i><h4>Henüz renk eklenmemiş</h4><p>Yukarıdaki "Yeni Renk Ekle" butonuna basarak başlayın.</p>';
+                    return;
+                }
+                if (model.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = '<i class="fas fa-search"></i><h4>Sonuç bulunamadı</h4><p>Arama kriterinize uygun kayıt yok.</p>';
+                    return;
+                }
+                emptyState.style.display = 'none';
+                container.innerHTML = model.map(({ color: c, parts }, i) => renderColorCard(c, parts, i)).join('');
+
+                if (focusAfterRender) {
+                    const el = document.querySelector(focusAfterRender);
+                    if (el) { el.focus(); if (el.select) el.select(); }
+                    focusAfterRender = null;
+                }
+                if (scrollAfterRender) {
+                    const el = document.getElementById(scrollAfterRender);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    scrollAfterRender = null;
+                }
+                syncCollapsibleHeights();
+            }
+
+            // Açık çekmecelerin gerçek içerik yüksekliğini ölçüp uygular (en içteki çekmeceden dışa doğru,
+            // iç içe geçmiş çekmecelerin yüksekliği doğru hesaplansın diye). Sadece kullanıcının AZ ÖNCE
+            // açtığı/kapattığı çekmeceye gerçek animasyon uygulanır; zaten açık kalan diğer çekmeceler
+            // her render'da yanıp sönmesin diye anında doğru yüksekliğe getirilir (CSS'teki geniş
+            // max-height fallback'i sayesinde bu, görsel olarak fark edilmez).
+            function syncCollapsibleHeights() {
+                const toggledId = lastToggledBodyId;
+                lastToggledBodyId = null;
+                const openBodies = Array.from(document.querySelectorAll('.collapsible-body.open')).reverse();
+                let toggledOpenEl = null;
+                openBodies.forEach(el => {
+                    if (toggledId && el.id === toggledId) { toggledOpenEl = el; return; }
+                    el.style.maxHeight = el.scrollHeight + 'px';
+                });
+                if (toggledOpenEl) {
+                    // Az önce AÇILDI: 0'dan gerçek yüksekliğe animasyonla büyüt
+                    const target = toggledOpenEl.scrollHeight;
+                    toggledOpenEl.style.maxHeight = '0px';
+                    void toggledOpenEl.offsetHeight;
+                    requestAnimationFrame(() => { toggledOpenEl.style.maxHeight = target + 'px'; });
+                } else if (toggledId) {
+                    // Az önce KAPANDI: içerik hâlâ DOM'da (sadece max-height:0 ile gizli); tam yükseklikten
+                    // 0'a doğru animasyonla küçült.
+                    const closedEl = document.getElementById(toggledId);
+                    if (closedEl) {
+                        const fullHeight = closedEl.scrollHeight;
+                        closedEl.style.maxHeight = fullHeight + 'px';
+                        void closedEl.offsetHeight;
+                        requestAnimationFrame(() => { closedEl.style.maxHeight = '0px'; });
+                    }
+                }
+            }
+
+            function renderColorCard(c, partsModel, index) {
+                const isOpen = !!openColors[c.id];
+                const editingKey = 'color:' + c.id;
+                const totalNet = colorNetTotal(c);
+                const themeClass = index % 2 === 0 ? 'theme-blue' : 'theme-gray';
+
+                const nameHtml = editing[editingKey]
+                    ? `<input type="text" class="inline-edit-input" data-type="color" data-color-id="${c.id}" value="${escapeHtml(c.name)}" placeholder="RENK ADI" maxlength="40">
+                       <button class="edit-name-btn confirm-btn" data-action="confirm-name" data-type="color" data-color-id="${c.id}" title="Onayla"><i class="fas fa-check"></i></button>`
+                    : `<span class="entity-name">${escapeHtml(c.name) || 'İSİMSİZ RENK'}</span>
+                       <button class="edit-name-btn" data-action="edit" data-type="color" data-color-id="${c.id}" title="Düzenle"><i class="fas fa-pen"></i></button>`;
+
+                const partsHtml = partsModel.map(({ part: p, sizes }) => renderPartCard(c.id, p, sizes)).join('');
+
+                return `
+                <div class="color-card ${themeClass}" id="color-card-${c.id}" data-color-id="${c.id}">
+                    <button class="delete-corner-btn dc-color" data-action="delete" data-type="color" data-color-id="${c.id}" title="Rengi Sil"><svg viewBox="0 0 24 24" width="12" height="12"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
+                    <div class="color-card-header" data-action="toggle-color" data-color-id="${c.id}">
+                        <div class="card-header-top">
+                            <div class="entity-name-wrap">${nameHtml}</div>
+                            <span class="toggle-icon ${isOpen ? '' : 'collapsed'}"><i class="fas fa-caret-down"></i></span>
+                        </div>
+                        <div class="card-header-stats">
+                            <span class="badge-total">Net: ${totalNet}</span>
+                        </div>
+                    </div>
+                    <div class="collapsible-body ${isOpen ? 'open' : ''}" id="cbody-color-${c.id}">
+                        <div class="parts-container">
+                            ${partsHtml}
+                            <button class="btn-add-inline" data-action="add-part" data-color-id="${c.id}"><i class="fas fa-plus"></i> Parça Ekle</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            function renderPartCard(colorId, p, sizesModel) {
+                const isOpen = !!openParts[p.id];
+                const editingKey = 'part:' + p.id;
+                const totalNet = partNetTotal(p);
+
+                const nameHtml = editing[editingKey]
+                    ? `<input type="text" class="inline-edit-input" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" value="${escapeHtml(p.name)}" placeholder="PARÇA ADI" maxlength="50">
+                       <button class="edit-name-btn confirm-btn" data-action="confirm-name" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" title="Onayla"><i class="fas fa-check"></i></button>`
+                    : `<span class="entity-name">${escapeHtml(p.name) || 'İSİMSİZ PARÇA'}</span>
+                       <button class="edit-name-btn" data-action="edit" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" title="Düzenle"><i class="fas fa-pen"></i></button>`;
+
+                const sizesHtml = sizesModel.map(s => renderSizeCard(colorId, p.id, s)).join('');
+                const anySizeOpen = sizesModel.some(s => !!openSizes[s.id]);
+                const addSizeBtnHtml = anySizeOpen ? '' : `<button class="btn-add-inline" data-action="add-size" data-color-id="${colorId}" data-part-id="${p.id}"><i class="fas fa-plus"></i> Ebat Ekle</button>`;
+
+                return `
+                <div class="part-card" data-part-id="${p.id}">
+                    <button class="delete-corner-btn dc-part" data-action="delete" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" title="Parçayı Sil"><svg viewBox="0 0 24 24" width="12" height="12"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
+                    <div class="part-card-header" data-action="toggle-part" data-color-id="${colorId}" data-part-id="${p.id}">
+                        <div class="card-header-top">
+                            <div class="entity-name-wrap">${nameHtml}</div>
+                            <span class="toggle-icon ${isOpen ? '' : 'collapsed'}"><i class="fas fa-caret-down"></i></span>
+                        </div>
+                        <div class="card-header-stats">
+                            <span class="badge-total">Net: ${totalNet}</span>
+                        </div>
+                    </div>
+                    <div class="collapsible-body ${isOpen ? 'open' : ''}" id="cbody-part-${p.id}">
+                        <div class="sizes-container">
+                            ${sizesHtml}
+                            ${addSizeBtnHtml}
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            function renderSizeCard(colorId, partId, s) {
+                const isOpen = !!openSizes[s.id];
+                const editingKey = 'size:' + s.id;
+                const last18 = lastQtyForThickness(s, 18);
+                const last30 = lastQtyForThickness(s, 30);
+                const n18 = net18(s), n30 = net30(s);
+                const isIncoming = currentMode === 'incoming';
+                // Butonlar (miktar girme): Ekle modunda her zaman görünür (0'a düşse de stok girilebilsin), Çıkart modunda 0 ise gizli.
+                const show18 = isIncoming || n18 > 0;
+                const show30 = isIncoming || n30 > 0;
+                const onlyOneShown = show18 !== show30;
+                // Rozetler (sadece bilgi amaçlı label'lar): moddan bağımsız, 0 ise her zaman gizli.
+                const badgeShow18 = n18 > 0;
+                const badgeShow30 = n30 > 0;
+                const onlyOneBadgeShown = badgeShow18 !== badgeShow30;
+
+                const nameHtml = editing[editingKey]
+                    ? `<input type="text" class="inline-edit-input" data-type="size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" value="${escapeHtml(s.name)}" placeholder="EBAT (örn: 398X472)" maxlength="30">
+                       <button class="edit-name-btn confirm-btn" data-action="confirm-name" data-type="size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" title="Onayla"><i class="fas fa-check"></i></button>`
+                    : `<span class="entity-name">${escapeHtml(s.name) || 'İSİMSİZ EBAT'}</span>
+                       <button class="edit-name-btn" data-action="edit" data-type="size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" title="Düzenle"><i class="fas fa-pen"></i></button>`;
+
+                const statsHtml = (badgeShow18 || badgeShow30) ? `
+                        <div class="card-header-stats ${onlyOneBadgeShown ? 'stats-center' : ''}">
+                            ${badgeShow18 ? `<span class="badge-total">18mm: ${n18}</span>` : ''}
+                            ${badgeShow30 ? `<span class="badge-total">30mm: ${n30}</span>` : ''}
+                        </div>` : '';
+
+                const thicknessRowHtml = (show18 || show30) ? `
+                            <div class="thickness-select-row ${onlyOneShown ? 'single' : ''}">
+                                ${show18 ? `<button class="thickness-select-btn" data-action="open-qty-modal" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" data-thickness="18">
+                                    <span class="thickness-select-title">18mm</span>
+                                    <span class="thickness-select-sub">Stok: ${n18} · Son: ${last18 !== null ? last18 : '—'}</span>
+                                </button>` : ''}
+                                ${show30 ? `<button class="thickness-select-btn" data-action="open-qty-modal" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" data-thickness="30">
+                                    <span class="thickness-select-title">30mm</span>
+                                    <span class="thickness-select-sub">Stok: ${n30} · Son: ${last30 !== null ? last30 : '—'}</span>
+                                </button>` : ''}
+                            </div>` : `<div class="thickness-empty-hint">Bu modda gösterilecek stok yok. Stok eklemek için "Ekle" moduna geçin.</div>`;
+
+                return `
+                <div class="size-card" data-size-id="${s.id}">
+                    <button class="delete-corner-btn dc-size" data-action="delete" data-type="size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" title="Ebatı Sil"><svg viewBox="0 0 24 24" width="12" height="12"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
+                    <div class="size-card-header" data-action="toggle-size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}">
+                        <div class="card-header-top">
+                            <div class="entity-name-wrap">${nameHtml}</div>
+                            <button class="note-btn ${s.note ? 'has-note' : ''}" data-action="open-note" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" title="${s.note ? 'Açıklamayı Düzenle' : 'Açıklama Ekle'}"><i class="fas fa-comment-dots"></i></button>
+                            <span class="toggle-icon ${isOpen ? '' : 'collapsed'}"><i class="fas fa-caret-down"></i></span>
+                        </div>
+                        ${statsHtml}
+                        ${s.note ? `<div class="note-preview" title="${escapeHtml(s.note)}">${escapeHtml(s.note)}</div>` : ''}
+                    </div>
+                    <div class="collapsible-body ${isOpen ? 'open' : ''}" id="cbody-size-${s.id}">
+                        <div class="size-detail">
+                            ${thicknessRowHtml}
+                            <button class="btn-mini-action history-mini" data-action="history" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}"><i class="fas fa-history"></i> Geçmişi Görüntüle</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // ---------- GENEL BAKIŞ MODAL ----------
+            function renderOverviewModal() {
+                const body = document.getElementById('listModalBody');
+                const map = {};
+                inventory.forEach(c => c.parts.forEach(p => {
+                    const key = (p.name || '').toUpperCase();
+                    if (!key) return;
+                    if (!map[key]) map[key] = [];
+                    p.sizes.forEach(s => {
+                        map[key].push({ colorName: c.name || 'İsimsiz Renk', sizeName: s.name || 'İsimsiz Ebat', net18: net18(s), net30: net30(s), note: s.note || '' });
+                    });
+                }));
+                const names = Object.keys(map).sort();
+                if (!names.length) { body.innerHTML = '<p class="text-muted text-center py-4">Henüz parça eklenmemiş.</p>'; return; }
+                body.innerHTML = names.map((name, i) => `
+                    <div class="list-color-item">
+                        <div class="list-color-header" data-list-index="${i}">
+                            <span><i class="fas fa-cube me-2"></i>${escapeHtml(name)}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="list-color-body" id="listBody-${i}">
+                            ${map[name].map(row => {
+                                const show18 = row.net18 > 0, show30 = row.net30 > 0;
+                                const singleClass = (show18 !== show30) ? 'single' : '';
+                                let qtyHtml = '';
+                                if (show18 || show30) {
+                                    qtyHtml = `<div class="list-part-qty ${singleClass}">${show18 ? `<span>18mm: ${row.net18}</span>` : ''}${show30 ? `<span>30mm: ${row.net30}</span>` : ''}</div>`;
+                                }
+                                const noteHtml = row.note ? `<div class="note-preview-list" title="${escapeHtml(row.note)}">${escapeHtml(row.note)}</div>` : '';
+                                return `
+                                <div class="list-part-item">
+                                    <div class="list-part-info">
+                                        <div class="list-part-title">${escapeHtml(row.colorName)} — ${escapeHtml(row.sizeName)}</div>
+                                        ${noteHtml}
+                                    </div>
+                                    ${qtyHtml}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>`).join('');
+
+                document.querySelectorAll('.list-color-header').forEach(header => {
+                    header.addEventListener('click', function () {
+                        const idx = this.getAttribute('data-list-index');
+                        const b = document.getElementById('listBody-' + idx);
+                        const icon = this.querySelector('.fa-chevron-down');
+                        b.classList.toggle('open');
+                        icon.style.transform = b.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                    });
+                });
+            }
+
+            // ---------- DIŞA / İÇE AKTARMA ----------
+            function downloadFile(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            function exportData() {
+                const blob = new Blob([JSON.stringify(inventory, null, 2)], { type: 'application/json' });
+                downloadFile(blob, 'mobilya_stok_yedek_' + new Date().toISOString().slice(0, 10) + '.json');
+                showToast('Veriler JSON dosyası olarak indirildi.');
+            }
+            function importData(file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (!Array.isArray(data)) throw new Error('Geçersiz dosya formatı.');
+                        inventory = isLegacyFormat(data) ? migrateLegacy(data) : normalizeInventory(data);
+                        saveToFirebase(); render();
+                        showToast('Veriler başarıyla içe aktarıldı.');
+                    } catch (err) { showToast('İçe aktarma hatası: ' + err.message, 'danger'); }
+                };
+                reader.readAsText(file);
+            }
+            function fmtNet(n) { return n === 0 ? '-' : n; }
+            function trSort(a, b) { return (a || '').localeCompare(b || '', 'tr'); }
+
+            async function exportExcel() {
+                const sortedColors = [...inventory].sort((a, b) => trSort(a.name, b.name));
+                const HEADER_FILL = 'FFDCE6F1';
+                const HEADER_FONT = 'FF1E3A5F';
+                const BAND_FILL = 'FFF2F2F2';
+
+                const wb = new ExcelJS.Workbook();
+                wb.creator = 'Mobilya Parça Stok Takibi';
+                wb.created = new Date();
+
+                // --- Sayfa 1: Stok Listesi (birleştirilmiş hücreler, ortalanmış, kenarlıklı) ---
+                const ws1 = wb.addWorksheet('Stok Listesi', { views: [{ state: 'frozen', ySplit: 1 }] });
+                ws1.columns = [
+                    { header: 'Renk', width: 22 },
+                    { header: 'Parça', width: 20 },
+                    { header: 'Ebat', width: 16 },
+                    { header: '18mm Net Stok', width: 15 },
+                    { header: '30mm Net Stok', width: 15 }
+                ];
+                const headerRow1 = ws1.getRow(1);
+                headerRow1.height = 26;
+                headerRow1.eachCell(cell => {
+                    cell.font = { bold: true, size: 12, color: { argb: HEADER_FONT } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    cell.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'medium' }, right: { style: 'medium' } };
+                });
+
+                let band = false;
+                let rowCursor = 2;
+                sortedColors.forEach(c => {
+                    const sortedParts = [...c.parts].sort((a, b) => trSort(a.name, b.name)).filter(p => p.sizes.length);
+                    if (!sortedParts.length) return;
+                    const colorStartRow = rowCursor;
+                    sortedParts.forEach(p => {
+                        const sortedSizes = [...p.sizes].sort((a, b) => trSort(a.name, b.name));
+                        const partStartRow = rowCursor;
+                        band = !band;
+                        sortedSizes.forEach(s => {
+                            const row = ws1.addRow([c.name || 'İsimsiz Renk', p.name || 'İsimsiz Parça', s.name || 'İsimsiz Ebat', fmtNet(net18(s)), fmtNet(net30(s))]);
+                            row.eachCell(cell => {
+                                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                                if (band) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BAND_FILL } };
+                            });
+                            rowCursor++;
+                        });
+                        const partEndRow = rowCursor - 1;
+                        if (partEndRow > partStartRow) ws1.mergeCells(`B${partStartRow}:B${partEndRow}`);
+                    });
+                    const colorEndRow = rowCursor - 1;
+                    if (colorEndRow > colorStartRow) ws1.mergeCells(`A${colorStartRow}:A${colorEndRow}`);
+                });
+
+                if (rowCursor === 2) { showToast('Excel için veri bulunamadı.', 'warning'); return; }
+
+                // --- Sayfa 2: Detaylı Giriş/Çıkış Dökümü ---
+                const ws2 = wb.addWorksheet('Detaylı Döküm', { views: [{ state: 'frozen', ySplit: 1 }] });
+                ws2.columns = [
+                    { header: 'Renk', width: 22 }, { header: 'Parça', width: 20 }, { header: 'Ebat', width: 16 },
+                    { header: '18mm Giriş', width: 12 }, { header: '18mm Çıkış', width: 12 }, { header: '18mm Net', width: 12 },
+                    { header: '30mm Giriş', width: 12 }, { header: '30mm Çıkış', width: 12 }, { header: '30mm Net', width: 12 }
+                ];
+                const headerRow2 = ws2.getRow(1);
+                headerRow2.height = 24;
+                headerRow2.eachCell(cell => {
+                    cell.font = { bold: true, size: 11, color: { argb: HEADER_FONT } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    cell.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'medium' }, right: { style: 'medium' } };
+                });
+                sortedColors.forEach(c => {
+                    [...c.parts].sort((a, b) => trSort(a.name, b.name)).forEach(p => {
+                        [...p.sizes].sort((a, b) => trSort(a.name, b.name)).forEach(s => {
+                            const row = ws2.addRow([
+                                c.name || 'İsimsiz Renk', p.name || 'İsimsiz Parça', s.name || 'İsimsiz Ebat',
+                                s.incoming18 || 0, s.outgoing18 || 0, net18(s),
+                                s.incoming30 || 0, s.outgoing30 || 0, net30(s)
+                            ]);
+                            row.eachCell(cell => {
+                                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                            });
+                        });
+                    });
+                });
+
+                const buffer = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                downloadFile(blob, 'mobilya_stok_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+                showToast('Excel dosyası indirildi.');
+            }
+
+            // ---------- MOD DEĞİŞTİRME (3 adımlı güvenlik onayı) ----------
+            function requestModeChange(targetMode) {
+                if (targetMode === currentMode) return;
+                pendingModeChange = targetMode; modeChangeStep = 0;
+                updateModeChangeModal();
+                new bootstrap.Modal(document.getElementById('modeChangeModal')).show();
+            }
+            function updateModeChangeModal() {
+                const cur = currentMode === 'incoming' ? 'Ekle' : 'Çıkart';
+                const target = pendingModeChange === 'incoming' ? 'Ekle' : 'Çıkart';
+                document.getElementById('modeChangeMessage').textContent = `Mod değiştirilecek: ${cur} → ${target}. Emin misiniz?`;
+                document.getElementById('modeChangeStepText').textContent = '';
+            }
+            function confirmModeChangeStep() {
+                if (!pendingModeChange) return;
+                currentMode = pendingModeChange; pendingModeChange = null; modeChangeStep = 0;
+                updateModeButtons(); render();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modeChangeModal'));
+                if (modal) modal.hide();
+                showToast('Mod değiştirildi: ' + (currentMode === 'incoming' ? 'Ekle' : 'Çıkart'), 'success');
+            }
+            function cancelModeChange() {
+                pendingModeChange = null; modeChangeStep = 0;
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modeChangeModal'));
+                if (modal) modal.hide();
+            }
+            function updateModeButtons() {
+                const inc = document.getElementById('modeIncomingBtn'), out = document.getElementById('modeOutgoingBtn');
+                if (currentMode === 'incoming') { inc.classList.add('active-incoming'); out.classList.remove('active-outgoing'); }
+                else { out.classList.add('active-outgoing'); inc.classList.remove('active-incoming'); }
+            }
+
+            // ---------- OLAY YÖNETİMİ ----------
+            function attachDelegatedEvents() {
+                const list = document.getElementById('colorsList');
+
+                list.addEventListener('click', function (e) {
+                    // Input üzerine tıklamak herhangi bir kart aksiyonunu (aç/kapa vb.) TETİKLEMESİN
+                    if (e.target.tagName === 'INPUT') return;
+
+                    // Açıklama etiketine tıklayınca genişlet/daralt (kart aç/kapa tetiklenmesin)
+                    const notePreview = e.target.closest('.note-preview');
+                    document.querySelectorAll('#colorsList .note-preview.expanded').forEach(el => {
+                        if (el !== notePreview) el.classList.remove('expanded');
+                    });
+                    if (notePreview) { e.stopPropagation(); notePreview.classList.toggle('expanded'); return; }
+
+                    const actionEl = e.target.closest('[data-action]');
+                    if (!actionEl) return;
+                    const action = actionEl.getAttribute('data-action');
+                    const colorId = actionEl.getAttribute('data-color-id');
+                    const partId = actionEl.getAttribute('data-part-id');
+                    const sizeId = actionEl.getAttribute('data-size-id');
+
+                    if (action === 'toggle-color') {
+                        const willOpen = !openColors[colorId];
+                        openColors[colorId] = willOpen;
+                        if (!willOpen) { const c = findColor(colorId); if (c) closePartsAndSizesUnderColor(c); }
+                        lastToggledBodyId = 'cbody-color-' + colorId;
+                        render(); return;
+                    }
+                    if (action === 'toggle-part') {
+                        e.stopPropagation();
+                        const willOpen = !openParts[partId];
+                        openParts[partId] = willOpen;
+                        if (!willOpen) { const p = findPart(colorId, partId); if (p) closeSizesUnderPart(p); }
+                        lastToggledBodyId = 'cbody-part-' + partId;
+                        render(); return;
+                    }
+                    if (action === 'toggle-size') {
+                        e.stopPropagation();
+                        openSizes[sizeId] = !openSizes[sizeId];
+                        lastToggledBodyId = 'cbody-size-' + sizeId;
+                        render(); return;
+                    }
+                    if (action === 'edit') { e.stopPropagation(); startEdit(actionEl.getAttribute('data-type'), colorId, partId, sizeId); return; }
+                    if (action === 'confirm-name') {
+                        e.stopPropagation();
+                        const type = actionEl.getAttribute('data-type');
+                        const wrap = actionEl.closest('.entity-name-wrap');
+                        const input = wrap.querySelector('.inline-edit-input');
+                        saveNameEdit(type, colorId, partId, sizeId, input ? input.value : '');
+                        return;
+                    }
+                    if (action === 'delete') { e.stopPropagation(); requestDelete(actionEl.getAttribute('data-type'), colorId, partId, sizeId); return; }
+                    if (action === 'add-part') { e.stopPropagation(); addPart(colorId); return; }
+                    if (action === 'add-size') { e.stopPropagation(); addSize(colorId, partId); return; }
+                    if (action === 'open-qty-modal') {
+                        e.stopPropagation();
+                        openQtyModal(colorId, partId, sizeId, parseInt(actionEl.getAttribute('data-thickness'), 10));
+                        return;
+                    }
+                    if (action === 'open-note') { e.stopPropagation(); openNoteModal(colorId, partId, sizeId); return; }
+                    if (action === 'history') {
+                        e.stopPropagation();
+                        historyContext = { colorId, partId, sizeId };
+                        renderHistoryModal();
+                        new bootstrap.Modal(document.getElementById('historyModal')).show();
+                        return;
+                    }
+                });
+
+                list.addEventListener('input', function (e) {
+                    if (e.target.classList.contains('inline-edit-input')) {
+                        const start = e.target.selectionStart, end = e.target.selectionEnd;
+                        e.target.value = e.target.value.toUpperCase();
+                        e.target.setSelectionRange(start, end);
+                    }
+                });
+                list.addEventListener('keypress', function (e) {
+                    if (e.target.classList.contains('inline-edit-input') && e.key === 'Enter') {
+                        e.preventDefault();
+                        const type = e.target.getAttribute('data-type');
+                        saveNameEdit(type, e.target.getAttribute('data-color-id'), e.target.getAttribute('data-part-id'), e.target.getAttribute('data-size-id'), e.target.value);
+                    }
+                });
+
+                // ---- Ebat (tek ebat) Geçmiş penceresi ----
+                const historyContentEl = document.getElementById('historyContent');
+                historyContentEl.addEventListener('focusin', function (e) {
+                    if (e.target.classList.contains('history-qty-edit')) e.target.select();
+                });
+                historyContentEl.addEventListener('focusout', function (e) {
+                    if (!e.target.classList.contains('history-qty-edit')) return;
+                    const item = e.target.closest('.history-item'); if (!item) return;
+                    const entryId = item.getAttribute('data-entry-id');
+                    editHistoryQty(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, e.target.value);
+                });
+                historyContentEl.addEventListener('change', function (e) {
+                    if (!e.target.classList.contains('history-datetime-edit')) return;
+                    const item = e.target.closest('.history-item'); if (!item) return;
+                    const entryId = item.getAttribute('data-entry-id');
+                    editHistoryTimestamp(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, e.target.value);
+                });
+                historyContentEl.addEventListener('click', function (e) {
+                    const item = e.target.closest('.history-item'); if (!item) return;
+                    const entryId = item.getAttribute('data-entry-id');
+                    const moveBtn = e.target.closest('[data-move]');
+                    if (moveBtn) { moveHistoryEntry(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, moveBtn.getAttribute('data-move')); return; }
+                    if (e.target.closest('.history-delete-btn')) { requestDeleteHistoryEntry(entryId, 'size'); return; }
+                });
+                historyContentEl.addEventListener('keypress', function (e) {
+                    if (e.target.classList.contains('history-qty-edit') && e.key === 'Enter') e.target.blur();
+                });
+
+                // ---- Genel (Tüm İşlemler) Geçmiş penceresi ----
+                const globalHistoryContentEl = document.getElementById('globalHistoryContent');
+                globalHistoryContentEl.addEventListener('focusin', function (e) {
+                    if (e.target.classList.contains('history-qty-edit')) e.target.select();
+                });
+                globalHistoryContentEl.addEventListener('focusout', function (e) {
+                    if (!e.target.classList.contains('history-qty-edit')) return;
+                    const item = e.target.closest('.history-item'); if (!item) return;
+                    const entryId = item.getAttribute('data-entry-id');
+                    const colorId = item.getAttribute('data-color-id') || null;
+                    const partId = item.getAttribute('data-part-id') || null;
+                    const sizeId = item.getAttribute('data-size-id') || null;
+                    const archived = item.getAttribute('data-archived') === '1';
+                    if (archived) editArchiveEntryQty(entryId, e.target.value);
+                    else editGlobalHistoryQty(colorId, partId, sizeId, entryId, e.target.value);
+                });
+                globalHistoryContentEl.addEventListener('change', function (e) {
+                    if (!e.target.classList.contains('history-datetime-edit')) return;
+                    const item = e.target.closest('.history-item'); if (!item) return;
+                    const entryId = item.getAttribute('data-entry-id');
+                    const colorId = item.getAttribute('data-color-id') || null;
+                    const partId = item.getAttribute('data-part-id') || null;
+                    const sizeId = item.getAttribute('data-size-id') || null;
+                    const archived = item.getAttribute('data-archived') === '1';
+                    if (archived) editArchiveEntryTimestamp(entryId, e.target.value);
+                    else editGlobalHistoryTimestamp(colorId, partId, sizeId, entryId, e.target.value);
+                });
+                globalHistoryContentEl.addEventListener('click', function (e) {
+                    const item = e.target.closest('.history-item'); if (!item) return;
+                    const entryId = item.getAttribute('data-entry-id');
+                    const colorId = item.getAttribute('data-color-id') || null;
+                    const partId = item.getAttribute('data-part-id') || null;
+                    const sizeId = item.getAttribute('data-size-id') || null;
+                    const archived = item.getAttribute('data-archived') === '1';
+                    const moveBtn = e.target.closest('[data-move]');
+                    if (moveBtn) { moveGlobalHistoryEntry(entryId, moveBtn.getAttribute('data-move')); return; }
+                    if (e.target.closest('.history-delete-btn')) { requestDeleteGlobalEntry(entryId, archived, colorId, partId, sizeId); return; }
+                });
+                globalHistoryContentEl.addEventListener('keypress', function (e) {
+                    if (e.target.classList.contains('history-qty-edit') && e.key === 'Enter') e.target.blur();
+                });
+            }
+
+            // ---------- BAŞLATMA ----------
+            function init() {
+                initFirebaseListener();
+                initArchiveListener();
+                attachDelegatedEvents();
+                updateModeButtons();
+
+                // Tüm Bootstrap modalları için otomatik arka plan kaydırma kilidi
+                document.addEventListener('show.bs.modal', lockBodyScroll);
+                document.addEventListener('hidden.bs.modal', unlockBodyScroll);
+
+                document.getElementById('modeIncomingBtn').addEventListener('click', () => { if (currentMode !== 'incoming') requestModeChange('incoming'); });
+                document.getElementById('modeOutgoingBtn').addEventListener('click', () => { if (currentMode !== 'outgoing') requestModeChange('outgoing'); });
+                document.getElementById('confirmModeChangeBtn').addEventListener('click', confirmModeChangeStep);
+                document.getElementById('cancelModeChangeBtn').addEventListener('click', cancelModeChange);
+                document.getElementById('confirmDeleteBtn').addEventListener('click', performDelete);
+                document.getElementById('qtyModalConfirmBtn').addEventListener('click', confirmQtyModal);
+                document.getElementById('noteModalSaveBtn').addEventListener('click', saveNoteModal);
+
+                document.getElementById('addColorTopBtn').addEventListener('click', addColor);
+
+                const searchToggleBtn = document.getElementById('searchToggleBtn');
+                const searchInput = document.getElementById('searchInput');
+                const mainToolbar = document.getElementById('mainToolbar');
+                const toolbarExtraButtons = document.getElementById('toolbarExtraButtons');
+
+                function flipToolbarButtons(changeFn) {
+                    const first = toolbarExtraButtons.getBoundingClientRect();
+                    const toolbarFirstHeight = mainToolbar.getBoundingClientRect().height;
+                    changeFn();
+                    const last = toolbarExtraButtons.getBoundingClientRect();
+                    const toolbarLastHeight = mainToolbar.getBoundingClientRect().height;
+                    const dy = first.top - last.top;
+
+                    // Beyaz panelin yüksekliğini de butonlarla AYNI sürede animasyonla değiştir,
+                    // panel butonlardan önce daralmasın/uzamasın diye.
+                    if (toolbarFirstHeight !== toolbarLastHeight) {
+                        mainToolbar.style.transition = 'none';
+                        mainToolbar.style.height = toolbarFirstHeight + 'px';
+                        mainToolbar.style.overflow = 'hidden';
+                        void mainToolbar.offsetHeight; // reflow'u zorla
+                        mainToolbar.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                        mainToolbar.style.height = toolbarLastHeight + 'px';
+                        mainToolbar.addEventListener('transitionend', function cleanup(e) {
+                            if (e.propertyName !== 'height') return;
+                            mainToolbar.style.height = '';
+                            mainToolbar.style.overflow = '';
+                            mainToolbar.style.transition = '';
+                            mainToolbar.removeEventListener('transitionend', cleanup);
+                        });
+                    }
+
+                    if (dy === 0) return;
+                    toolbarExtraButtons.style.transition = 'none';
+                    toolbarExtraButtons.style.transform = `translateY(${dy}px)`;
+                    void toolbarExtraButtons.offsetHeight; // reflow'u zorla
+                    toolbarExtraButtons.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    toolbarExtraButtons.style.transform = '';
+                }
+
+                searchToggleBtn.addEventListener('click', function () {
+                    if (searchInput.classList.contains('search-input-hidden')) {
+                        flipToolbarButtons(() => {
+                            searchInput.classList.remove('search-input-hidden');
+                            mainToolbar.classList.add('search-open');
+                        });
+                        setTimeout(() => searchInput.focus(), 120);
+                    } else {
+                        flipToolbarButtons(() => {
+                            searchInput.classList.add('search-input-hidden');
+                            mainToolbar.classList.remove('search-open');
+                        });
+                        searchInput.value = ''; searchTerm = ''; render();
+                    }
+                });
+                searchInput.addEventListener('input', function () {
+                    const start = this.selectionStart, end = this.selectionEnd;
+                    this.value = this.value.toUpperCase();
+                    this.setSelectionRange(start, end);
+                    searchTerm = this.value;
+                    render();
+                });
+
+                document.getElementById('exportBtn').addEventListener('click', exportData);
+                document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
+                document.getElementById('excelBtn').addEventListener('click', exportExcel);
+                document.getElementById('importFileInput').addEventListener('change', function () {
+                    if (this.files && this.files.length > 0) { importData(this.files[0]); this.value = ''; }
+                });
+
+                document.getElementById('listBtn').addEventListener('click', function () {
+                    renderOverviewModal();
+                    document.getElementById('listModal').classList.add('open');
+                    lockBodyScroll();
+                });
+                document.getElementById('globalHistoryBtn').addEventListener('click', function () {
+                    renderGlobalHistoryModal();
+                    new bootstrap.Modal(document.getElementById('globalHistoryModal')).show();
+                });
+                document.getElementById('closeListBtn').addEventListener('click', function () {
+                    document.getElementById('listModal').classList.remove('open');
+                    unlockBodyScroll();
+                });
+                document.getElementById('listModal').addEventListener('click', function (e) {
+                    if (e.target === this) { this.classList.remove('open'); unlockBodyScroll(); }
+                });
+                document.getElementById('listModalBody').addEventListener('click', function (e) {
+                    const preview = e.target.closest('.note-preview-list');
+                    document.querySelectorAll('.note-preview-list.expanded').forEach(el => {
+                        if (el !== preview) el.classList.remove('expanded');
+                    });
+                    if (preview) { e.stopPropagation(); preview.classList.toggle('expanded'); }
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>
