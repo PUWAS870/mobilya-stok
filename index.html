@@ -213,9 +213,10 @@
         .history-row-info { flex: 1; min-width: 0; }
         .history-row-title { font-weight: 700; font-size: 0.95rem; color: var(--text); }
         .history-thickness-pill { display: inline-block; background: #eef2f7; color: var(--secondary); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
-        .history-context-label { color: var(--primary); font-weight: 600; font-size: 0.78rem; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-context-label { color: var(--primary); font-weight: 600; font-size: 0.78rem; margin-top: 3px; white-space: normal; word-break: break-word; line-height: 1.4; }
         .history-archived-badge { background: #e2e3e5; color: #41464b; font-size: 0.64rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 4px; }
         .history-list { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
+        #globalHistoryModal .history-list { max-height: 78vh; }
         .history-row-qty { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
         .history-qty-edit { width: 56px; min-height: 38px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; font-size: 0.95rem; transition: transform 0.15s ease; }
         .history-qty-unit { font-size: 0.72rem; color: var(--secondary); }
@@ -367,7 +368,6 @@
             <div class="modal-content">
                 <div class="modal-header"><h5 class="modal-title">Tüm İşlem Geçmişi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body"><div id="globalHistoryContent" class="history-list"></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
             </div>
         </div>
     </div>
@@ -890,7 +890,9 @@
             }
             function requestDeleteHistoryEntry(entryId, sourceModal) {
                 pendingDelete = { type: 'history', colorId: historyContext.colorId, partId: historyContext.partId, sizeId: historyContext.sizeId, entryId, sourceModal: sourceModal || 'size' };
-                document.getElementById('deleteMessage').textContent = 'Bu geçmiş kaydını silmek istediğinize emin misiniz? Kayda ait miktar stoktan geri çıkarılacak.';
+                const size = findSize(historyContext.colorId, historyContext.partId, historyContext.sizeId);
+                const entry = size ? size.history.find(h => h.id === entryId) : null;
+                document.getElementById('deleteMessage').innerHTML = buildHistoryDeleteMessage(entry);
                 new bootstrap.Modal(document.getElementById('deleteModal')).show();
             }
             function deleteHistoryEntry(colorId, partId, sizeId, entryId) {
@@ -935,18 +937,62 @@
                 renderGlobalHistoryModal();
             }
             function deleteArchiveEntry(entryId) {
-                historyArchive = historyArchive.filter(h => h.id !== entryId);
+                const entry = historyArchive.find(h => h.id === entryId);
+                if (!entry) return;
+
+                // Aynı renk/parça/ebat üçlüsüne ait TÜM diğer arşiv kayıtlarını bul (bu, silinen ebatın kalan geçmişidir)
+                const groupKey = h => (h.colorName || '') + '\u0000' + (h.partName || '') + '\u0000' + (h.sizeName || '');
+                const key = groupKey(entry);
+                const remaining = historyArchive.filter(h => h.id !== entryId && groupKey(h) === key);
+                historyArchive = historyArchive.filter(h => groupKey(h) !== key);
+
+                // Rengi bul, yoksa yeniden oluştur
+                let color = inventory.find(c => (c.name || '') === entry.colorName);
+                if (!color) { color = { id: generateId(), name: entry.colorName || '', parts: [] }; inventory.push(color); }
+                // Parçayı bul, yoksa yeniden oluştur
+                let part = color.parts.find(p => (p.name || '') === entry.partName);
+                if (!part) { part = { id: generateId(), name: entry.partName || '', sizes: [] }; color.parts.push(part); }
+
+                // Ebatı, kalan geçmişten yeniden hesaplanmış stok miktarlarıyla geri oluştur
+                let incoming18 = 0, outgoing18 = 0, incoming30 = 0, outgoing30 = 0;
+                const restoredHistory = remaining.map(h => {
+                    if (h.type === 'incoming') { if (h.thickness === 18) incoming18 += h.qty; else incoming30 += h.qty; }
+                    else { if (h.thickness === 18) outgoing18 += h.qty; else outgoing30 += h.qty; }
+                    return { id: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts, order: (h.order != null ? h.order : h.ts) };
+                });
+                const restoredSize = {
+                    id: generateId(), name: entry.sizeName || '', note: '',
+                    incoming18, outgoing18, incoming30, outgoing30,
+                    history: restoredHistory
+                };
+                part.sizes.push(restoredSize);
+
+                openColors[color.id] = true; openParts[part.id] = true; openSizes[restoredSize.id] = true;
+                scrollAfterRender = 'color-card-' + color.id;
+
                 saveArchiveToFirebase();
-                showToast('Arşivlenmiş kayıt silindi.', 'success');
+                saveToFirebase();
+                showToast(`"${entry.sizeName || 'Ebat'}" geri getirildi (kalan ${remaining.length} geçmiş kaydıyla birlikte).`, 'success');
+                render();
                 renderGlobalHistoryModal();
+            }
+            function buildHistoryDeleteMessage(entry) {
+                if (!entry) return 'Bu geçmiş kaydını silmek istediğinize emin misiniz?';
+                const isIncoming = entry.type === 'incoming';
+                const effect = isIncoming
+                    ? `stoktan <strong>${entry.qty} adet düşecek</strong>`
+                    : `stoğa <strong>${entry.qty} adet geri eklenecek</strong>`;
+                return `Bu ${entry.thickness}mm ${isIncoming ? 'GİRİŞ' : 'ÇIKIŞ'} kaydını (${entry.qty} adet) silmek istediğinize emin misiniz? Bu kayıt silinince ${effect}.`;
             }
             function requestDeleteGlobalEntry(entryId, archived, colorId, partId, sizeId) {
                 if (archived) {
                     pendingDelete = { type: 'archive-history', colorId: null, partId: null, sizeId: null, entryId, sourceModal: 'global' };
-                    document.getElementById('deleteMessage').textContent = 'Bu arşivlenmiş geçmiş kaydını kalıcı olarak silmek istediğinize emin misiniz?';
+                    document.getElementById('deleteMessage').innerHTML = 'Bu kayıt, daha önce stoğu 0\'a düşüp silinen bir ebata ait. Bu kaydı silerseniz <strong>o ebat, kalan geçmişiyle birlikte geri getirilecek</strong>. Devam etmek istediğinize emin misiniz?';
                 } else {
                     pendingDelete = { type: 'history', colorId, partId, sizeId, entryId, sourceModal: 'global' };
-                    document.getElementById('deleteMessage').textContent = 'Bu geçmiş kaydını silmek istediğinize emin misiniz? Kayda ait miktar stoktan geri çıkarılacak.';
+                    const size = findSize(colorId, partId, sizeId);
+                    const entry = size ? size.history.find(h => h.id === entryId) : null;
+                    document.getElementById('deleteMessage').innerHTML = buildHistoryDeleteMessage(entry);
                 }
                 new bootstrap.Modal(document.getElementById('deleteModal')).show();
             }
