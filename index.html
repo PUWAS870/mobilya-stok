@@ -259,6 +259,8 @@
         .list-part-item:last-child { border-bottom: none; }
         .list-part-info { flex: 1 1 auto; min-width: 0; }
         .list-part-title { line-height: 1.35; }
+        .list-part-title-row { display: flex; align-items: center; gap: 6px; }
+        .list-part-title-row .list-part-title { flex: 1; min-width: 0; }
         .note-preview-list {
             display: inline-block; margin-top: 4px; background: #e5f1fb; color: #33627f; font-size: 0.72rem; font-style: italic;
             padding: 4px 9px; border-radius: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
@@ -665,7 +667,7 @@
             function addPart(colorId) {
                 const c = findColor(colorId); if (!c) return;
                 const id = generateId();
-                c.parts.push({ id, name: '', sizes: [] });
+                c.parts.push({ id, name: '', note: '', sizes: [] });
                 openColors[colorId] = true; openParts[id] = true;
                 editing['part:' + id] = true;
                 focusAfterRender = `.inline-edit-input[data-type="part"][data-part-id="${id}"]`;
@@ -795,6 +797,7 @@
                 size.note = val;
                 saveToFirebase();
                 render();
+                if (document.getElementById('listModal').classList.contains('open')) renderOverviewModal();
                 const modal = bootstrap.Modal.getInstance(document.getElementById('noteModal'));
                 if (modal) modal.hide();
                 showToast(val ? 'Açıklama kaydedildi.' : 'Açıklama temizlendi.', 'success');
@@ -1413,7 +1416,7 @@
                     if (!key) return;
                     if (!map[key]) map[key] = [];
                     p.sizes.forEach(s => {
-                        map[key].push({ colorName: c.name || 'İsimsiz Renk', sizeName: s.name || 'İsimsiz Ebat', net18: net18(s), net30: net30(s), note: s.note || '' });
+                        map[key].push({ colorId: c.id, partId: p.id, sizeId: s.id, colorName: c.name || 'İsimsiz Renk', sizeName: s.name || 'İsimsiz Ebat', net18: net18(s), net30: net30(s), note: s.note || '' });
                     });
                 }));
                 const names = Object.keys(map).sort();
@@ -1436,7 +1439,10 @@
                                 return `
                                 <div class="list-part-item">
                                     <div class="list-part-info">
-                                        <div class="list-part-title">${escapeHtml(row.colorName)} — ${escapeHtml(row.sizeName)}</div>
+                                        <div class="list-part-title-row">
+                                            <div class="list-part-title">${escapeHtml(row.colorName)} — ${escapeHtml(row.sizeName)}</div>
+                                            <button class="note-btn ${row.note ? 'has-note' : ''}" data-action="open-note-overview" data-color-id="${row.colorId}" data-part-id="${row.partId}" data-size-id="${row.sizeId}" title="${row.note ? 'Açıklamayı Düzenle' : 'Açıklama Ekle'}"><i class="fas fa-comment-dots"></i></button>
+                                        </div>
                                         ${noteHtml}
                                     </div>
                                     ${qtyHtml}
@@ -1878,6 +1884,12 @@
                     if (e.target === this) { this.classList.remove('open'); unlockBodyScroll(); }
                 });
                 document.getElementById('listModalBody').addEventListener('click', function (e) {
+                    const noteBtn = e.target.closest('[data-action="open-note-overview"]');
+                    if (noteBtn) {
+                        e.stopPropagation();
+                        openNoteModal(noteBtn.getAttribute('data-color-id'), noteBtn.getAttribute('data-part-id'), noteBtn.getAttribute('data-size-id'));
+                        return;
+                    }
                     const preview = e.target.closest('.note-preview-list');
                     document.querySelectorAll('.note-preview-list.expanded').forEach(el => {
                         if (el !== preview) el.classList.remove('expanded');
