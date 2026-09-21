@@ -56,6 +56,17 @@
             }
         }
         body.scroll-locked { overflow: hidden; }
+        #initialLoadingOverlay {
+            position: fixed; inset: 0; z-index: 99999; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+        }
+        #initialLoadingOverlay p { color: var(--secondary); font-weight: 600; }
+        .loading-spinner {
+            width: 46px; height: 46px; border-radius: 50%;
+            border: 4px solid #dbe2ea; border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         html.scroll-locked { overflow: hidden; }
 
         .app-header { background: linear-gradient(135deg, #1e3a5f 0%, #2c6b9e 100%); color: #fff; padding: 16px 0; box-shadow: var(--shadow); margin-bottom: 14px; position: sticky; top: 0; z-index: 20; }
@@ -92,6 +103,9 @@
         .color-card { border: 2px solid; border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; position: relative; }
         .color-card.theme-blue { background: #e3f0fc; border-color: #a9cdec; }
         .color-card.theme-gray { background: #f8f4ea; border-color: #e3d5b8; }
+        /* Stoğu tükenen (net toplam 0) renk/parça/ebat kartları: silinmek yerine gri işaretlenir */
+        .color-card.is-depleted.theme-blue, .color-card.is-depleted.theme-gray { background: #eceef0; border-color: #c7cbd1; }
+        .color-card.is-depleted .badge-total { background: rgba(255,255,255,0.5); color: #6b7280; }
         .color-card-header { display: flex; flex-direction: column; gap: 8px; padding: 14px 12px 14px 46px; cursor: pointer; }
         .part-card-header { display: flex; flex-direction: column; gap: 6px; padding: 11px 10px 11px 44px; cursor: pointer; }
         .size-card-header { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 10px 44px; cursor: pointer; }
@@ -156,10 +170,15 @@
         .part-card { background: var(--part-card-bg); border: 1.5px solid var(--part-card-border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; position: relative; }
         .part-card-header .entity-name { font-size: 1rem; }
         .sizes-container { padding: 8px 8px 10px; }
+        .part-card.is-depleted { background: #e6e7e9; border-color: #c7cbd1; }
+        .part-card.is-depleted .badge-total { background: rgba(255,255,255,0.5); color: #6b7280; }
 
         /* Ebat Kartı (isim kartı - tıklayınca açılır) */
         .size-card { background: var(--size-card-bg); border: 1.5px solid var(--size-card-border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; position: relative; }
         .size-card-header .entity-name { font-size: 0.96rem; color: var(--accent); }
+        .size-card.is-depleted { background: #e6e7e9; border-color: #c7cbd1; }
+        .size-card.is-depleted .size-card-header .entity-name { color: #7d8591; }
+        .size-card.is-depleted .badge-total { background: rgba(255,255,255,0.5); color: #6b7280; }
         .size-detail { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .thickness-select-row { display: flex; gap: 8px; }
         .thickness-select-row.single { justify-content: center; }
@@ -213,10 +232,27 @@
         .history-row-info { flex: 1; min-width: 0; }
         .history-row-title { font-weight: 700; font-size: 0.95rem; color: var(--text); }
         .history-thickness-pill { display: inline-block; background: #eef2f7; color: var(--secondary); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+        .history-thickness-edit {
+            display: inline-block; background: #eef2f7; color: var(--secondary); font-size: 0.72rem; font-weight: 700;
+            padding: 3px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; border: 1.5px solid #d7dce3;
+            min-height: 26px; -webkit-appearance: none; appearance: none; text-align: center;
+        }
+        .history-thickness-edit:focus { outline: none; border-color: var(--primary); }
         .history-context-label { color: var(--primary); font-weight: 600; font-size: 0.78rem; margin-top: 3px; white-space: normal; word-break: break-word; line-height: 1.4; }
         .history-archived-badge { background: #e2e3e5; color: #41464b; font-size: 0.64rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 4px; }
         .history-list { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
-        #globalHistoryModal .history-list { max-height: 78vh; }
+        #globalHistoryModal .history-list { max-height: 68vh; }
+        .history-filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .history-filter-select {
+            flex: 1 1 calc(50% - 4px); min-width: 110px; min-height: 42px; border: 1.5px solid #ccc; border-radius: 10px;
+            padding: 6px 10px; font-size: 0.82rem; background: #fff; color: var(--primary);
+        }
+        .history-filter-select:focus { outline: none; border-color: var(--primary); }
+        .history-filter-clear {
+            flex: 0 0 42px; min-height: 42px; border: 1.5px solid #ccc; border-radius: 10px; background: #f5f5f5; color: #777;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .history-filter-clear:active { background: #e8e8e8; }
         .history-row-qty { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
         .history-qty-edit { width: 56px; min-height: 38px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; font-size: 0.95rem; transition: transform 0.15s ease; }
         .history-qty-unit { font-size: 0.72rem; color: var(--secondary); }
@@ -236,6 +272,23 @@
         .modal-backdrop.fade { transition: opacity 0.16s ease; }
         .modal-header { background: var(--primary); color: #fff; border-bottom: none; border-radius: 14px 14px 0 0; padding: 14px 18px; }
         .modal-header .btn-close { filter: invert(1); }
+        .btn-icon-header {
+            background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: 10px; font-size: 0.95rem;
+        }
+        .btn-icon-header:active { background: rgba(255,255,255,0.28); }
+        .backup-item {
+            border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .backup-item-info { display: flex; flex-direction: column; gap: 2px; }
+        .backup-item-time { font-weight: 700; color: var(--primary); font-size: 0.92rem; }
+        .backup-item-detail { font-size: 0.78rem; color: #777; }
+        .backup-restore-btn {
+            flex: 0 0 auto; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--accent);
+            background: #eef4fb; color: var(--accent); font-weight: 700; font-size: 0.82rem; white-space: nowrap;
+        }
+        .backup-restore-btn:active { background: #dde9f6; }
         .modal-footer { padding: 14px 18px; border-top: 1px solid var(--border); gap: 8px; }
         .modal-body { padding: 18px; overscroll-behavior: contain; }
         .modal-footer .btn { min-height: 50px; font-size: 1rem; flex: 1; }
@@ -275,6 +328,11 @@
     </style>
 </head>
 <body>
+
+    <div id="initialLoadingOverlay">
+        <div class="loading-spinner"></div>
+        <p>Veriler yükleniyor, lütfen bekleyin...</p>
+    </div>
 
     <div class="app-header">
         <div class="container"><h1><i class="fas fa-chair"></i>Mobilya Parça Stok Takibi</h1></div>
@@ -368,8 +426,41 @@
     <div class="modal fade" id="globalHistoryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Tüm İşlem Geçmişi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><div id="globalHistoryContent" class="history-list"></div></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Tüm İşlem Geçmişi</h5>
+                    <button type="button" class="btn-icon-header" id="autoBackupsBtn" title="Otomatik Yedekler"><i class="fas fa-cloud"></i></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="history-filter-bar" id="historyFilterBar">
+                        <select id="filterColor" class="history-filter-select"><option value="">Tüm Renkler</option></select>
+                        <select id="filterPart" class="history-filter-select"><option value="">Tüm Parçalar</option></select>
+                        <select id="filterSize" class="history-filter-select"><option value="">Tüm Ebatlar</option></select>
+                        <select id="filterThickness" class="history-filter-select">
+                            <option value="">Tüm Kalınlıklar</option>
+                            <option value="18">18mm</option>
+                            <option value="30">30mm</option>
+                        </select>
+                        <button type="button" id="filterClearBtn" class="history-filter-clear" title="Filtreleri Temizle"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="globalHistoryContent" class="history-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Otomatik Yedekler Modal -->
+    <div class="modal fade" id="autoBackupsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Otomatik Yedekler</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Yaptığınız her giriş/çıkış işleminden sonra, o anki tüm stok verisinin bir kopyası buluta kaydedilir. Son <span id="maxBackupsLabel"></span> işlem yedeği burada listelenir; sorun yaşarsanız birine geri dönebilirsiniz.</p>
+                    <div id="autoBackupsContent"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -431,6 +522,7 @@
         const database = firebase.database();
         const dbRef = database.ref('inventory');
         const archiveRef = database.ref('historyArchive');
+        const backupRef = database.ref('autoBackups');
 
         (function () {
             // ---------- STATE ----------
@@ -438,8 +530,11 @@
             let searchTerm = '';
             let currentMode = 'incoming';
             let pendingModeChange = null, modeChangeStep = 0;
-            let pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null };
+            let pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null, backupIndex: null };
+            let globalHistoryFilters = { color: '', part: '', size: '', thickness: '' };
             let historyArchive = []; // silinen ebatların geçmiş kayıtları (renk/parça/ebat silindiğinde de burada kalır)
+            let autoBackups = []; // her giriş/çıkış işleminden sonra alınan, buluttaki son N tam-veri yedeği (eskiden yeniye)
+            const MAX_BACKUPS = 20; // Firebase ücretsiz (Spark) plan sınırlarına göre güvenli, geniş paylı bir sayı
             let openColors = {};
             let openParts = {};
             let openSizes = {};
@@ -491,6 +586,11 @@
                 return div.innerHTML;
             }
 
+            function hideInitialLoadingOverlay() {
+                const overlay = document.getElementById('initialLoadingOverlay');
+                if (overlay) overlay.remove();
+            }
+
             function showToast(message, type = 'success') {
                 const container = document.getElementById('toastContainer');
                 const el = document.createElement('div');
@@ -527,44 +627,11 @@
             function findSize(colorId, partId, sizeId) { const p = findPart(colorId, partId); return p ? p.sizes.find(s => s.id === sizeId) : null; }
 
             // ---------- NET STOK 0'A DÜŞÜNCE KADEMELİ OTOMATİK SİLME ----------
+            // Stok sıfıra düştüğünde artık hiçbir şey silinmiyor: ebat/parça/renk kalıcı olarak
+            // listede kalır ve render sırasında (net toplam 0 ise) gri renkle işaretlenir.
+            // Bu fonksiyon geriye dönük uyumluluk için "hiçbir şey silinmedi" sonucu döndürür.
             function cascadeDeleteIfZero(colorId, partId, sizeId) {
-                const result = { sizeDeleted: false, sizeName: '', partDeleted: false, partName: '', colorDeleted: false, colorName: '' };
-                const size = findSize(colorId, partId, sizeId);
-                if (!size || sizeNetTotal(size) !== 0) return result;
-
-                const part = findPart(colorId, partId);
-                if (!part) return result;
-                const color = findColor(colorId);
-
-                result.sizeDeleted = true;
-                result.sizeName = size.name || 'İsimsiz Ebat';
-                result.partName = part.name || 'İsimsiz Parça';
-                result.colorName = color ? (color.name || 'İsimsiz Renk') : 'İsimsiz Renk';
-
-                // Silinen ebatın işlem geçmişini kalıcı arşive taşı (Genel Geçmiş'te görünmeye devam etsin)
-                (size.history || []).forEach(h => {
-                    historyArchive.push({
-                        id: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts,
-                        order: (h.order !== undefined && h.order !== null) ? h.order : h.ts,
-                        colorName: result.colorName, partName: result.partName, sizeName: result.sizeName
-                    });
-                });
-                if ((size.history || []).length) saveArchiveToFirebase();
-
-                part.sizes = part.sizes.filter(s => s.id !== sizeId);
-
-                if (part.sizes.length === 0) {
-                    if (color) {
-                        result.partDeleted = true;
-                        color.parts = color.parts.filter(p => p.id !== partId);
-
-                        if (color.parts.length === 0) {
-                            result.colorDeleted = true;
-                            inventory = inventory.filter(c => c.id !== colorId);
-                        }
-                    }
-                }
-                return result;
+                return { sizeDeleted: false, sizeName: '', partDeleted: false, partName: '', colorDeleted: false, colorName: '' };
             }
             function notifyCascadeDelete(result) {
                 if (!result.sizeDeleted) return;
@@ -629,19 +696,27 @@
                 });
                 return data;
             }
+            let dataLoaded = false; // Firebase'den ilk veri tam yüklenene kadar true olmaz - kayıp veri üzerine yazmayı önler
             function initFirebaseListener() {
                 dbRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     if (!data) { inventory = []; }
                     else if (isLegacyFormat(data)) {
                         inventory = migrateLegacy(data);
+                        dataLoaded = true;
                         saveToFirebase();
                         showToast('Eski veri yapısı yeni sürüme otomatik olarak taşındı.', 'info');
                     } else { inventory = normalizeInventory(data); }
+                    dataLoaded = true;
+                    hideInitialLoadingOverlay();
                     render();
                 }, (error) => { console.error(error); showToast('Veritabanına bağlanılamadı.', 'danger'); });
             }
             function saveToFirebase() {
+                if (!dataLoaded) {
+                    console.warn('Firebase verisi henüz yüklenmeden kaydetme engellendi (veri kaybını önlemek için).');
+                    return;
+                }
                 dbRef.set(inventory).catch(err => { console.error(err); showToast('Veriler kaydedilemedi.', 'danger'); });
             }
             function initArchiveListener() {
@@ -652,6 +727,22 @@
             }
             function saveArchiveToFirebase() {
                 archiveRef.set(historyArchive).catch(err => console.error('Arşiv yazma hatası:', err));
+            }
+            function initBackupListener() {
+                backupRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    autoBackups = Array.isArray(data) ? data : [];
+                }, (error) => { console.error('Yedek okuma hatası:', error); });
+            }
+            // Her giriş/çıkış işleminden sonra çağrılır: o anki TÜM stok verisinin (inventory)
+            // bir kopyasını buluta (Firebase) alır. En yeni MAX_BACKUPS yedek tutulur, en eskisi FIFO ile atılır.
+            // localStorage KULLANILMAZ - tamamen bulut tabanlıdır, veri kaybına karşı ek güvenlik katmanıdır.
+            function saveBackupSnapshot() {
+                if (!dataLoaded) return;
+                const snapshot = { ts: Date.now(), data: JSON.parse(JSON.stringify(inventory)) };
+                autoBackups.push(snapshot);
+                while (autoBackups.length > MAX_BACKUPS) autoBackups.shift();
+                backupRef.set(autoBackups).catch(err => console.error('Yedek yazma hatası:', err));
             }
 
             // ---------- EKLEME ----------
@@ -752,6 +843,10 @@
                         this.value = this.value.replace(/^0+/, '') || '0';
                     }
                 });
+                qtyInputEl.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') { e.preventDefault(); confirmQtyModal(); }
+                });
+                setTimeout(() => qtyInputEl.focus(), 50);
             }
             function stepQtyModalInput(dir) {
                 const input = document.getElementById('qtyModalInput');
@@ -812,6 +907,7 @@
                 size.history.push(entry);
                 const cascade = cascadeDeleteIfZero(colorId, partId, sizeId);
                 saveToFirebase(); render();
+                saveBackupSnapshot();
                 if (cascade.sizeDeleted) { notifyCascadeDelete(cascade); }
                 else { showToast(`${thickness}mm için ${qty} adet ${isIncoming ? 'giriş' : 'çıkış'} kaydedildi.`, 'success'); }
             }
@@ -847,6 +943,27 @@
                 saveToFirebase();
                 return { success: true, changed: true, cascade: cascade };
             }
+            function applyHistoryThicknessEdit(colorId, partId, sizeId, entryId, newThickness) {
+                const size = findSize(colorId, partId, sizeId); if (!size) return { success: false };
+                const entry = size.history.find(h => h.id === entryId); if (!entry) return { success: false };
+                newThickness = parseInt(newThickness, 10);
+                if (newThickness !== 18 && newThickness !== 30) return { success: false, invalid: true };
+                if (newThickness === entry.thickness) return { success: true, changed: false };
+                let ni18 = size.incoming18, no18 = size.outgoing18, ni30 = size.incoming30, no30 = size.outgoing30;
+                // kaydı eski kalınlıktan çıkar
+                if (entry.type === 'incoming') { if (entry.thickness === 18) ni18 -= entry.qty; else ni30 -= entry.qty; }
+                else { if (entry.thickness === 18) no18 -= entry.qty; else no30 -= entry.qty; }
+                // yeni kalınlığa ekle
+                if (entry.type === 'incoming') { if (newThickness === 18) ni18 += entry.qty; else ni30 += entry.qty; }
+                else { if (newThickness === 18) no18 += entry.qty; else no30 += entry.qty; }
+                if ((ni18 - no18) < 0 || (ni30 - no30) < 0) return { success: false, blocked: true };
+                size.incoming18 = ni18; size.outgoing18 = no18; size.incoming30 = ni30; size.outgoing30 = no30;
+                entry.thickness = newThickness;
+                clamp(size);
+                const cascade = cascadeDeleteIfZero(colorId, partId, sizeId);
+                saveToFirebase();
+                return { success: true, changed: true, cascade: cascade };
+            }
             function applyHistoryTimestampEdit(colorId, partId, sizeId, entryId, newVal) {
                 const size = findSize(colorId, partId, sizeId); if (!size) return false;
                 const entry = size.history.find(h => h.id === entryId); if (!entry) return false;
@@ -877,6 +994,23 @@
             }
             function editHistoryTimestamp(colorId, partId, sizeId, entryId, newVal) {
                 if (applyHistoryTimestampEdit(colorId, partId, sizeId, entryId, newVal)) showToast('Tarih/saat güncellendi.', 'success');
+                render(); renderHistoryModal();
+            }
+            function editHistoryThickness(colorId, partId, sizeId, entryId, newThickness) {
+                const result = applyHistoryThicknessEdit(colorId, partId, sizeId, entryId, newThickness);
+                if (!result.success) {
+                    if (result.blocked) showToast('Bu değişiklik stoğu negatife düşürür, izin verilmiyor.', 'danger');
+                    render(); renderHistoryModal(); return;
+                }
+                if (result.changed) {
+                    if (result.cascade && result.cascade.sizeDeleted) {
+                        notifyCascadeDelete(result.cascade);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('historyModal'));
+                        if (modal) modal.hide();
+                        render(); return;
+                    }
+                    showToast('Kalınlık güncellendi.', 'success');
+                }
                 render(); renderHistoryModal();
             }
             function moveHistoryEntry(colorId, partId, sizeId, entryId, direction) {
@@ -939,6 +1073,38 @@
                 showToast('Tarih/saat güncellendi.', 'success');
                 renderGlobalHistoryModal();
             }
+            function editArchiveEntryThickness(entryId, newThickness) {
+                const entry = findArchiveEntry(entryId); if (!entry) return;
+                newThickness = parseInt(newThickness, 10);
+                if (newThickness !== 18 && newThickness !== 30) { renderGlobalHistoryModal(); return; }
+                entry.thickness = newThickness;
+                saveArchiveToFirebase();
+                showToast('Kalınlık güncellendi.', 'success');
+                renderGlobalHistoryModal();
+            }
+            // Bir renk/parça/ebat grubunu, verilen geçmiş kayıtlarından yeniden hesaplanmış stoklarla
+            // canlı envantere (inventory) geri ekler. Renk/parça yoksa yeniden oluşturur.
+            function restoreGroupFromArchive(colorName, partName, sizeName, entriesForGroup) {
+                let color = inventory.find(c => (c.name || '') === colorName);
+                if (!color) { color = { id: generateId(), name: colorName || '', parts: [] }; inventory.push(color); }
+                let part = color.parts.find(p => (p.name || '') === partName);
+                if (!part) { part = { id: generateId(), name: partName || '', sizes: [] }; color.parts.push(part); }
+
+                let incoming18 = 0, outgoing18 = 0, incoming30 = 0, outgoing30 = 0;
+                const restoredHistory = entriesForGroup.map(h => {
+                    if (h.type === 'incoming') { if (h.thickness === 18) incoming18 += h.qty; else incoming30 += h.qty; }
+                    else { if (h.thickness === 18) outgoing18 += h.qty; else outgoing30 += h.qty; }
+                    return { id: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts, order: (h.order != null ? h.order : h.ts) };
+                });
+                const restoredSize = {
+                    id: generateId(), name: sizeName || '', note: '',
+                    incoming18, outgoing18, incoming30, outgoing30,
+                    history: restoredHistory
+                };
+                part.sizes.push(restoredSize);
+                return { color, part, size: restoredSize };
+            }
+
             function deleteArchiveEntry(entryId) {
                 const entry = historyArchive.find(h => h.id === entryId);
                 if (!entry) return;
@@ -949,28 +1115,9 @@
                 const remaining = historyArchive.filter(h => h.id !== entryId && groupKey(h) === key);
                 historyArchive = historyArchive.filter(h => groupKey(h) !== key);
 
-                // Rengi bul, yoksa yeniden oluştur
-                let color = inventory.find(c => (c.name || '') === entry.colorName);
-                if (!color) { color = { id: generateId(), name: entry.colorName || '', parts: [] }; inventory.push(color); }
-                // Parçayı bul, yoksa yeniden oluştur
-                let part = color.parts.find(p => (p.name || '') === entry.partName);
-                if (!part) { part = { id: generateId(), name: entry.partName || '', sizes: [] }; color.parts.push(part); }
+                const { color, part, size } = restoreGroupFromArchive(entry.colorName, entry.partName, entry.sizeName, remaining);
 
-                // Ebatı, kalan geçmişten yeniden hesaplanmış stok miktarlarıyla geri oluştur
-                let incoming18 = 0, outgoing18 = 0, incoming30 = 0, outgoing30 = 0;
-                const restoredHistory = remaining.map(h => {
-                    if (h.type === 'incoming') { if (h.thickness === 18) incoming18 += h.qty; else incoming30 += h.qty; }
-                    else { if (h.thickness === 18) outgoing18 += h.qty; else outgoing30 += h.qty; }
-                    return { id: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts, order: (h.order != null ? h.order : h.ts) };
-                });
-                const restoredSize = {
-                    id: generateId(), name: entry.sizeName || '', note: '',
-                    incoming18, outgoing18, incoming30, outgoing30,
-                    history: restoredHistory
-                };
-                part.sizes.push(restoredSize);
-
-                openColors[color.id] = true; openParts[part.id] = true; openSizes[restoredSize.id] = true;
+                openColors[color.id] = true; openParts[part.id] = true; openSizes[size.id] = true;
                 scrollAfterRender = 'color-card-' + color.id;
 
                 saveArchiveToFirebase();
@@ -979,6 +1126,7 @@
                 render();
                 renderGlobalHistoryModal();
             }
+
             function buildHistoryDeleteMessage(entry) {
                 if (!entry) return 'Bu geçmiş kaydını silmek istediğinize emin misiniz?';
                 const isIncoming = entry.type === 'incoming';
@@ -1014,7 +1162,10 @@
                     <div class="history-row-main">
                         <div class="history-type-icon ${iconClass}"><i class="fas ${iconGlyph}"></i></div>
                         <div class="history-row-info">
-                            <div class="history-row-title">${typeText}<span class="history-thickness-pill">${e.thickness}mm</span></div>
+                            <div class="history-row-title">${typeText}<select class="history-thickness-edit">
+                                <option value="18" ${e.thickness === 18 ? 'selected' : ''}>18mm</option>
+                                <option value="30" ${e.thickness === 30 ? 'selected' : ''}>30mm</option>
+                            </select></div>
                             ${contextHtml}
                         </div>
                         <div class="history-row-qty">
@@ -1083,6 +1234,18 @@
                 if (applyHistoryTimestampEdit(colorId, partId, sizeId, entryId, newVal)) showToast('Tarih/saat güncellendi.', 'success');
                 render(); renderGlobalHistoryModal();
             }
+            function editGlobalHistoryThickness(colorId, partId, sizeId, entryId, newThickness) {
+                const result = applyHistoryThicknessEdit(colorId, partId, sizeId, entryId, newThickness);
+                if (!result.success) {
+                    if (result.blocked) showToast('Bu değişiklik stoğu negatife düşürür, izin verilmiyor.', 'danger');
+                    render(); renderGlobalHistoryModal(); return;
+                }
+                if (result.changed) {
+                    if (result.cascade && result.cascade.sizeDeleted) notifyCascadeDelete(result.cascade);
+                    else showToast('Kalınlık güncellendi.', 'success');
+                }
+                render(); renderGlobalHistoryModal();
+            }
             function setEntryOrder(entryRef, newOrder) {
                 if (entryRef.archived) {
                     const e = findArchiveEntry(entryRef.entryId); if (e) e.order = newOrder;
@@ -1104,11 +1267,90 @@
                 saveToFirebase(); saveArchiveToFirebase();
                 renderGlobalHistoryModal();
             }
+            function applyGlobalHistoryFilters(allEntries) {
+                return allEntries.filter(e => {
+                    if (globalHistoryFilters.color && e.colorName !== globalHistoryFilters.color) return false;
+                    if (globalHistoryFilters.part && e.partName !== globalHistoryFilters.part) return false;
+                    if (globalHistoryFilters.size && e.sizeName !== globalHistoryFilters.size) return false;
+                    if (globalHistoryFilters.thickness && String(e.thickness) !== globalHistoryFilters.thickness) return false;
+                    return true;
+                });
+            }
+            function populateGlobalHistoryFilterOptions(allEntries) {
+                // Renk secenekleri: her zaman tum kayitlardan (renk secimi digerlerini kademelendirir)
+                const colorScoped = allEntries;
+                const partScoped = allEntries.filter(e => !globalHistoryFilters.color || e.colorName === globalHistoryFilters.color);
+                const sizeScoped = partScoped.filter(e => !globalHistoryFilters.part || e.partName === globalHistoryFilters.part);
+
+                const uniq = (arr, key) => [...new Set(arr.map(e => e[key]).filter(v => v !== undefined && v !== null && v !== ''))].sort((a, b) => trSort(a, b));
+
+                const fillSelect = (id, values, current, allLabel) => {
+                    const el = document.getElementById(id);
+                    const prev = current;
+                    el.innerHTML = `<option value="">${allLabel}</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
+                    el.value = values.includes(prev) ? prev : '';
+                };
+
+                fillSelect('filterColor', uniq(colorScoped, 'colorName'), globalHistoryFilters.color, 'Tüm Renkler');
+                fillSelect('filterPart', uniq(partScoped, 'partName'), globalHistoryFilters.part, 'Tüm Parçalar');
+                fillSelect('filterSize', uniq(sizeScoped, 'sizeName'), globalHistoryFilters.size, 'Tüm Ebatlar');
+                document.getElementById('filterThickness').value = globalHistoryFilters.thickness;
+
+                // Secim listede yoksa (kademelenme sonucu gecersiz oldu) filtreyi sifirla
+                if (globalHistoryFilters.color && !uniq(colorScoped, 'colorName').includes(globalHistoryFilters.color)) globalHistoryFilters.color = '';
+                if (globalHistoryFilters.part && !uniq(partScoped, 'partName').includes(globalHistoryFilters.part)) globalHistoryFilters.part = '';
+                if (globalHistoryFilters.size && !uniq(sizeScoped, 'sizeName').includes(globalHistoryFilters.size)) globalHistoryFilters.size = '';
+            }
             function renderGlobalHistoryModal() {
                 const allEntries = buildGlobalHistoryEntries();
+                populateGlobalHistoryFilterOptions(allEntries);
+                const filtered = applyGlobalHistoryFilters(allEntries);
                 const content = document.getElementById('globalHistoryContent');
                 if (!allEntries.length) { content.innerHTML = '<p class="text-muted text-center py-3">Henüz işlem kaydı yok.</p>'; return; }
-                content.innerHTML = allEntries.map((e, i) => renderHistoryEntryRow(e, true, i === 0, i === allEntries.length - 1)).join('');
+                if (!filtered.length) { content.innerHTML = '<p class="text-muted text-center py-3">Bu filtrelere uyan kayıt yok.</p>'; return; }
+                content.innerHTML = filtered.map((e, i) => renderHistoryEntryRow(e, true, i === 0, i === filtered.length - 1)).join('');
+            }
+
+            // ---------- OTOMATİK BULUT YEDEKLERİ (son N işlem) ----------
+            function formatRelativeTime(ts) {
+                const diffMs = Date.now() - ts;
+                const mins = Math.floor(diffMs / 60000);
+                if (mins < 1) return 'az önce';
+                if (mins < 60) return `${mins} dakika önce`;
+                const hours = Math.floor(mins / 60);
+                if (hours < 24) return `${hours} saat önce`;
+                const days = Math.floor(hours / 24);
+                return `${days} gün önce`;
+            }
+            function renderAutoBackupsModal() {
+                document.getElementById('maxBackupsLabel').textContent = MAX_BACKUPS;
+                const content = document.getElementById('autoBackupsContent');
+                if (!autoBackups.length) {
+                    content.innerHTML = '<p class="text-muted text-center py-3">Henüz otomatik yedek alınmadı. İlk giriş/çıkış işleminizden sonra burada görünecek.</p>';
+                    return;
+                }
+                const rows = [...autoBackups].reverse().map((b, revIdx) => {
+                    const idx = autoBackups.length - 1 - revIdx; // gercek dizideki index
+                    const colorCount = (b.data || []).length;
+                    const dateStr = new Date(b.ts).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return `
+                    <div class="backup-item">
+                        <div class="backup-item-info">
+                            <span class="backup-item-time">${formatRelativeTime(b.ts)}</span>
+                            <span class="backup-item-detail">${dateStr} · ${colorCount} renk</span>
+                        </div>
+                        <button type="button" class="backup-restore-btn" data-backup-index="${idx}">Geri Yükle</button>
+                    </div>`;
+                }).join('');
+                content.innerHTML = rows;
+            }
+            function requestRestoreBackup(index) {
+                const backup = autoBackups[index];
+                if (!backup) return;
+                pendingDelete = { type: 'restore-backup', colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null, backupIndex: index };
+                const dateStr = new Date(backup.ts).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                document.getElementById('deleteMessage').innerHTML = `<strong>${dateStr}</strong> tarihli yedeğe geri dönmek istediğinize emin misiniz? Bu, <strong>şu anki tüm stok verilerinizin üzerine yazılacak</strong>. Bu işlem geri alınamaz.`;
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
             }
 
             // ---------- SİLME ----------
@@ -1172,7 +1414,18 @@
                 else if (type === 'archive-history') {
                     deleteArchiveEntry(entryId);
                 }
-                pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null };
+                else if (type === 'restore-backup') {
+                    const backup = autoBackups[pendingDelete.backupIndex];
+                    if (backup) {
+                        inventory = JSON.parse(JSON.stringify(backup.data));
+                        const modal1 = bootstrap.Modal.getInstance(document.getElementById('autoBackupsModal'));
+                        if (modal1) modal1.hide();
+                        const modal2 = bootstrap.Modal.getInstance(document.getElementById('globalHistoryModal'));
+                        if (modal2) modal2.hide();
+                        showToast('Seçilen yedek başarıyla geri yüklendi.', 'success');
+                    }
+                }
+                pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null, backupIndex: null };
                 if (archivedAny) saveArchiveToFirebase();
                 saveToFirebase(); render();
                 const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
@@ -1280,6 +1533,7 @@
                 const editingKey = 'color:' + c.id;
                 const totalNet = colorNetTotal(c);
                 const themeClass = index % 2 === 0 ? 'theme-blue' : 'theme-gray';
+                const isDepleted = totalNet === 0;
 
                 const nameHtml = editing[editingKey]
                     ? `<input type="text" class="inline-edit-input" data-type="color" data-color-id="${c.id}" value="${escapeHtml(c.name)}" placeholder="RENK ADI" maxlength="40">
@@ -1290,7 +1544,7 @@
                 const partsHtml = partsModel.map(({ part: p, sizes }) => renderPartCard(c.id, p, sizes)).join('');
 
                 return `
-                <div class="color-card ${themeClass}" id="color-card-${c.id}" data-color-id="${c.id}">
+                <div class="color-card ${themeClass} ${isDepleted ? 'is-depleted' : ''}" id="color-card-${c.id}" data-color-id="${c.id}">
                     <button class="delete-corner-btn dc-color" data-action="delete" data-type="color" data-color-id="${c.id}" title="Rengi Sil"><svg viewBox="0 0 24 24" width="12" height="12"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
                     <div class="color-card-header" data-action="toggle-color" data-color-id="${c.id}">
                         <div class="card-header-top">
@@ -1314,6 +1568,7 @@
                 const isOpen = !!openParts[p.id];
                 const editingKey = 'part:' + p.id;
                 const totalNet = partNetTotal(p);
+                const isDepleted = totalNet === 0;
 
                 const nameHtml = editing[editingKey]
                     ? `<input type="text" class="inline-edit-input" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" value="${escapeHtml(p.name)}" placeholder="PARÇA ADI" maxlength="50">
@@ -1322,11 +1577,10 @@
                        <button class="edit-name-btn" data-action="edit" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" title="Düzenle"><i class="fas fa-pen"></i></button>`;
 
                 const sizesHtml = sizesModel.map(s => renderSizeCard(colorId, p.id, s)).join('');
-                const anySizeOpen = sizesModel.some(s => !!openSizes[s.id]);
-                const addSizeBtnHtml = anySizeOpen ? '' : `<button class="btn-add-inline" data-action="add-size" data-color-id="${colorId}" data-part-id="${p.id}"><i class="fas fa-plus"></i> Ebat Ekle</button>`;
+                const addSizeBtnHtml = `<button class="btn-add-inline" data-action="add-size" data-color-id="${colorId}" data-part-id="${p.id}"><i class="fas fa-plus"></i> Ebat Ekle</button>`;
 
                 return `
-                <div class="part-card" data-part-id="${p.id}">
+                <div class="part-card ${isDepleted ? 'is-depleted' : ''}" data-part-id="${p.id}">
                     <button class="delete-corner-btn dc-part" data-action="delete" data-type="part" data-color-id="${colorId}" data-part-id="${p.id}" title="Parçayı Sil"><svg viewBox="0 0 24 24" width="12" height="12"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
                     <div class="part-card-header" data-action="toggle-part" data-color-id="${colorId}" data-part-id="${p.id}">
                         <div class="card-header-top">
@@ -1352,6 +1606,7 @@
                 const last18 = lastQtyForThickness(s, 18);
                 const last30 = lastQtyForThickness(s, 30);
                 const n18 = net18(s), n30 = net30(s);
+                const isDepleted = sizeNetTotal(s) === 0;
                 const isIncoming = currentMode === 'incoming';
                 // Butonlar (miktar girme): Ekle modunda her zaman görünür (0'a düşse de stok girilebilsin), Çıkart modunda 0 ise gizli.
                 const show18 = isIncoming || n18 > 0;
@@ -1387,7 +1642,7 @@
                             </div>` : `<div class="thickness-empty-hint">Bu modda gösterilecek stok yok. Stok eklemek için "Ekle" moduna geçin.</div>`;
 
                 return `
-                <div class="size-card" data-size-id="${s.id}">
+                <div class="size-card ${isDepleted ? 'is-depleted' : ''}" data-size-id="${s.id}">
                     <button class="delete-corner-btn dc-size" data-action="delete" data-type="size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}" title="Ebatı Sil"><svg viewBox="0 0 24 24" width="12" height="12"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
                     <div class="size-card-header" data-action="toggle-size" data-color-id="${colorId}" data-part-id="${partId}" data-size-id="${s.id}">
                         <div class="card-header-top">
@@ -1713,10 +1968,13 @@
                     editHistoryQty(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, e.target.value);
                 });
                 historyContentEl.addEventListener('change', function (e) {
-                    if (!e.target.classList.contains('history-datetime-edit')) return;
                     const item = e.target.closest('.history-item'); if (!item) return;
                     const entryId = item.getAttribute('data-entry-id');
-                    editHistoryTimestamp(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, e.target.value);
+                    if (e.target.classList.contains('history-datetime-edit')) {
+                        editHistoryTimestamp(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, e.target.value);
+                    } else if (e.target.classList.contains('history-thickness-edit')) {
+                        editHistoryThickness(historyContext.colorId, historyContext.partId, historyContext.sizeId, entryId, e.target.value);
+                    }
                 });
                 historyContentEl.addEventListener('click', function (e) {
                     const item = e.target.closest('.history-item'); if (!item) return;
@@ -1746,15 +2004,19 @@
                     else editGlobalHistoryQty(colorId, partId, sizeId, entryId, e.target.value);
                 });
                 globalHistoryContentEl.addEventListener('change', function (e) {
-                    if (!e.target.classList.contains('history-datetime-edit')) return;
                     const item = e.target.closest('.history-item'); if (!item) return;
                     const entryId = item.getAttribute('data-entry-id');
                     const colorId = item.getAttribute('data-color-id') || null;
                     const partId = item.getAttribute('data-part-id') || null;
                     const sizeId = item.getAttribute('data-size-id') || null;
                     const archived = item.getAttribute('data-archived') === '1';
-                    if (archived) editArchiveEntryTimestamp(entryId, e.target.value);
-                    else editGlobalHistoryTimestamp(colorId, partId, sizeId, entryId, e.target.value);
+                    if (e.target.classList.contains('history-datetime-edit')) {
+                        if (archived) editArchiveEntryTimestamp(entryId, e.target.value);
+                        else editGlobalHistoryTimestamp(colorId, partId, sizeId, entryId, e.target.value);
+                    } else if (e.target.classList.contains('history-thickness-edit')) {
+                        if (archived) editArchiveEntryThickness(entryId, e.target.value);
+                        else editGlobalHistoryThickness(colorId, partId, sizeId, entryId, e.target.value);
+                    }
                 });
                 globalHistoryContentEl.addEventListener('click', function (e) {
                     const item = e.target.closest('.history-item'); if (!item) return;
@@ -1770,14 +2032,49 @@
                 globalHistoryContentEl.addEventListener('keypress', function (e) {
                     if (e.target.classList.contains('history-qty-edit') && e.key === 'Enter') e.target.blur();
                 });
+
+                // ---- Genel Geçmiş filtreleri (Renk / Parça / Ebat / Kalınlık) ----
+                document.getElementById('filterColor').addEventListener('change', function () {
+                    globalHistoryFilters.color = this.value;
+                    globalHistoryFilters.part = ''; globalHistoryFilters.size = '';
+                    renderGlobalHistoryModal();
+                });
+                document.getElementById('filterPart').addEventListener('change', function () {
+                    globalHistoryFilters.part = this.value;
+                    globalHistoryFilters.size = '';
+                    renderGlobalHistoryModal();
+                });
+                document.getElementById('filterSize').addEventListener('change', function () {
+                    globalHistoryFilters.size = this.value;
+                    renderGlobalHistoryModal();
+                });
+                document.getElementById('filterThickness').addEventListener('change', function () {
+                    globalHistoryFilters.thickness = this.value;
+                    renderGlobalHistoryModal();
+                });
+                document.getElementById('filterClearBtn').addEventListener('click', function () {
+                    globalHistoryFilters = { color: '', part: '', size: '', thickness: '' };
+                    renderGlobalHistoryModal();
+                });
             }
 
             // ---------- BAŞLATMA ----------
             function init() {
                 initFirebaseListener();
                 initArchiveListener();
+                initBackupListener();
                 attachDelegatedEvents();
                 updateModeButtons();
+
+                // Güvenlik: bağlantı çok uzun sürerse (örn. internet sorunu) kullanıcıyı sonsuza dek
+                // bekletmeyelim; ama "dataLoaded" false kaldığı sürece saveToFirebase() yine de
+                // hiçbir şeyi ezmeyecek şekilde korumaya devam eder.
+                setTimeout(() => {
+                    if (!dataLoaded) {
+                        hideInitialLoadingOverlay();
+                        showToast('Bağlantı yavaş - veriler henüz gelmedi. Lütfen internetinizi kontrol edip sayfayı yenileyin.', 'danger');
+                    }
+                }, 10000);
 
                 // Tüm Bootstrap modalları için otomatik arka plan kaydırma kilidi
                 document.addEventListener('show.bs.modal', lockBodyScroll);
@@ -1875,6 +2172,15 @@
                 document.getElementById('globalHistoryBtn').addEventListener('click', function () {
                     renderGlobalHistoryModal();
                     new bootstrap.Modal(document.getElementById('globalHistoryModal')).show();
+                });
+                document.getElementById('autoBackupsBtn').addEventListener('click', function () {
+                    renderAutoBackupsModal();
+                    new bootstrap.Modal(document.getElementById('autoBackupsModal')).show();
+                });
+                document.getElementById('autoBackupsContent').addEventListener('click', function (e) {
+                    const btn = e.target.closest('.backup-restore-btn');
+                    if (!btn) return;
+                    requestRestoreBackup(parseInt(btn.getAttribute('data-backup-index'), 10));
                 });
                 document.getElementById('closeListBtn').addEventListener('click', function () {
                     document.getElementById('listModal').classList.remove('open');
