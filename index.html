@@ -12,19 +12,21 @@
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <style>
         :root {
-            --primary: #1e3a5f;
-            --primary-hover: #16304f;
-            --secondary: #4a5568;
-            --accent: #2c6b9e;
-            --bg: #eef1f5;
+            --primary: #14456b;
+            --primary-hover: #0e3550;
+            --secondary: #5b7688;
+            --accent: #2f8fc4;
+            --bg: #eaf3f8;
             --card-bg: #ffffff;
-            --text: #202b3a;
-            --border: #dce1e7;
-            --shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-            --part-card-bg: #e6f8ee;
-            --part-card-border: #a3ddb8;
+            --text: #1c2b38;
+            --border: #d7e3ea;
+            --shadow: 0 2px 10px rgba(20,69,107,0.09), 0 1px 3px rgba(20,69,107,0.06);
+            --part-card-bg: #faf7ee;
+            --part-card-border: #e6dcc0;
             --size-card-bg: #ffffff;
-            --size-card-border: #dfe3e8;
+            --size-card-border: #dbe6ec;
+            --teal: #1c9c81;
+            --coral: #e0623f;
             --touch: 48px;
         }
         * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,7 +42,7 @@
         button, .icon-btn, .delete-corner-btn, .edit-name-btn, .toggle-icon, .thickness-select-btn, .btn-mini-action,
         .btn-add-inline, .note-btn, .step-btn, .history-move-btn, .history-delete-btn, .list-color-header,
         .btn-close-list, .color-card-header, .part-card-header, .size-card-header {
-            transition: transform 0.15s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
         }
         @media (hover: hover) and (pointer: fine) {
             button:hover, .icon-btn:hover, .delete-corner-btn:hover, .edit-name-btn:hover, .toggle-icon:hover,
@@ -56,6 +58,45 @@
             }
         }
         body.scroll-locked { overflow: hidden; }
+        #loginOverlay {
+            position: fixed; inset: 0; z-index: 999999; background: var(--primary);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .login-box {
+            background: #fff; border-radius: 18px; padding: 36px 28px; max-width: 340px; width: 100%;
+            text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+        }
+        .login-box.shake { animation: loginShake 0.4s; }
+        @keyframes loginShake {
+            10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); }
+            30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); }
+        }
+        .login-icon { font-size: 2.2rem; color: var(--primary); margin-bottom: 10px; }
+        .login-box h2 { font-size: 1.15rem; color: var(--primary); margin-bottom: 4px; }
+        .login-subtitle { color: var(--secondary); font-size: 0.88rem; margin-bottom: 20px; }
+        .login-password-input {
+            width: 100%; min-height: 52px; border-radius: 12px; border: 1.5px solid #ccc; text-align: center;
+            font-size: 1.3rem; letter-spacing: 4px; margin-bottom: 14px; font-weight: 700; color: var(--primary);
+        }
+        .login-password-input:focus { outline: none; border-color: var(--primary); }
+        .login-submit-btn {
+            width: 100%; min-height: 52px; border-radius: 12px; border: none; background: var(--primary); color: #fff;
+            font-weight: 700; font-size: 1rem;
+        }
+        .login-submit-btn:disabled { opacity: 0.6; }
+        .login-submit-btn:not(:disabled):active { transform: scale(0.98); }
+        .login-error { color: #c0432e; font-size: 0.85rem; margin-top: 12px; min-height: 18px; font-weight: 600; }
+        .multi-tab-warning {
+            display: none; align-items: center; gap: 8px; background: #fff3cd; color: #7a5c00; border-bottom: 2px solid #f0c14b;
+            padding: 10px 16px; font-size: 0.82rem; font-weight: 600; text-align: center; justify-content: center;
+        }
+        .settings-label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+        .bulk-color-rows { max-height: 40vh; overflow-y: auto; }
+        .bulk-color-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .bulk-color-row .bulk-color-name { flex: 1; font-weight: 600; color: var(--primary); font-size: 0.9rem; }
+        .bulk-color-row .bulk-color-name-input { flex: 1; min-height: 40px; border-radius: 8px; border: 1.5px solid #ccc; padding: 0 10px; text-transform: uppercase; }
+        #bulkPartName, #bulkSizeName { text-transform: uppercase; }
+        .bulk-color-row .bulk-color-qty { width: 80px; min-height: 40px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; }
         #initialLoadingOverlay {
             position: fixed; inset: 0; z-index: 99999; background: var(--bg);
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
@@ -71,29 +112,41 @@
 
         .app-header { background: linear-gradient(135deg, #1e3a5f 0%, #2c6b9e 100%); color: #fff; padding: 16px 0; box-shadow: var(--shadow); margin-bottom: 14px; position: sticky; top: 0; z-index: 20; }
         .app-header h1 { font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; }
+        .header-flex { display: flex; align-items: center; justify-content: space-between; }
+        .header-settings-btn {
+            background: rgba(255,255,255,0.15); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+        }
+        .header-settings-btn:active { background: rgba(255,255,255,0.28); }
         .container { width: 100%; max-width: 720px; padding-left: 10px; padding-right: 10px; margin: 0 auto; }
 
         .mode-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
-        .mode-btn { flex: 1; min-height: 54px; font-size: 1.05rem; font-weight: 700; border-radius: 10px; border: 2px solid var(--border); background: #fff; color: var(--text); transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
+        .mode-btn { flex: 1; min-height: 54px; font-size: 1.05rem; font-weight: 700; border-radius: 10px; border: 2px solid var(--border); background: #fff; color: var(--text); transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
         .mode-btn:active { transform: scale(0.97); }
-        .mode-btn.active-incoming { background: #27ae60; border-color: #27ae60; color: #fff; }
-        .mode-btn.active-outgoing { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+        .mode-btn.active-incoming { background: #1c9c81; border-color: #1c9c81; color: #fff; }
+        .mode-btn.active-outgoing { background: #e0623f; border-color: #e0623f; color: #fff; }
 
-        .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; background: var(--card-bg); padding: 8px; border-radius: 12px; box-shadow: var(--shadow); }
-        .btn-tool { background: none; border: 1.5px solid #333; border-radius: 10px; width: var(--touch); height: var(--touch); display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #333; padding: 0; flex-shrink:0; transition: transform 0.15s ease, background-color 0.18s ease, color 0.18s ease; }
-        .btn-tool:active { background: #333; color: #fff; transform: scale(0.95); }
-        .btn-tool.excel { color: #217346; border-color: #217346; }
-        .btn-tool.excel:active { background: #217346; color: #fff; }
-        .search-wrapper { flex: 0 0 var(--touch); display: flex; align-items: center; gap: 6px; overflow: hidden; }
+        .toolbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; margin-bottom: 14px; background: var(--card-bg); padding: 8px; border-radius: 12px; box-shadow: var(--shadow); }
+        .btn-tool { background: none; border: 1.5px solid var(--primary); border-radius: 10px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.08rem; color: var(--primary); padding: 0; flex-shrink:0; transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease, color 0.18s ease; }
+        .btn-tool:active { background: var(--primary); color: #fff; transform: scale(0.93); }
+        .btn-tool.excel { color: #1c7a4d; border-color: #1c7a4d; }
+        .btn-tool.excel:active { background: #1c7a4d; color: #fff; }
+        .search-wrapper { flex: 0 0 44px; display: flex; align-items: center; gap: 6px; overflow: hidden; }
         .toolbar.search-open .search-wrapper { flex: 1 1 100%; min-width: 140px; overflow: visible; }
-        .toolbar-extra-buttons { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
-        .toolbar.search-open .toolbar-extra-buttons { margin-left: calc(var(--touch) + 8px); }
-        .search-wrapper input { flex: 1; min-height: var(--touch); border: 1.5px solid #333; border-radius: 10px; padding: 8px 12px; text-transform: uppercase; transition: max-width 0.2s ease, opacity 0.16s ease, padding 0.2s ease, border-width 0.2s ease, transform 0.15s ease; max-width: 600px; opacity: 1; }
+        .toolbar-extra-buttons {
+            display: flex; flex-wrap: nowrap; gap: 8px; flex: 0 1 auto; min-width: 0;
+            overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none;
+            padding: 2px 2px; scroll-behavior: smooth; opacity: 1;
+            transition: flex-basis 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .toolbar-extra-buttons::-webkit-scrollbar { display: none; }
+        .toolbar.search-open .toolbar-extra-buttons { flex-basis: 0; width: 0; opacity: 0; overflow: hidden; padding: 0; pointer-events: none; }
+        .search-wrapper input { flex: 1; min-height: 44px; border: 1.5px solid var(--primary); border-radius: 10px; padding: 8px 12px; text-transform: uppercase; transition: max-width 0.2s ease, opacity 0.16s ease, padding 0.2s ease, border-width 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 600px; opacity: 1; }
         .search-wrapper input.search-input-hidden { max-width: 0; opacity: 0; padding-left: 0; padding-right: 0; border-width: 0; pointer-events: none; }
         .search-wrapper input:focus { outline: none; border-color: var(--primary); }
         .search-hint-bar { background:#fff3cd; color:#664d03; border-radius:10px; padding:8px 12px; font-size:0.85rem; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
 
-        .btn-add-color-top { width: 100%; min-height: 54px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 700; font-size: 1.05rem; margin-bottom: 14px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s ease, background-color 0.2s ease; }
+        .btn-add-color-top { width: 100%; min-height: 54px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 700; font-size: 1.05rem; margin-bottom: 14px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease; }
         .btn-add-color-top:active { background: var(--primary-hover); transform: scale(0.98); }
 
         .empty-state { text-align: center; padding: 50px 20px; color: #6b7280; }
@@ -101,8 +154,8 @@
 
         /* Renk Kartı */
         .color-card { border: 2px solid; border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; position: relative; }
-        .color-card.theme-blue { background: #e3f0fc; border-color: #a9cdec; }
-        .color-card.theme-gray { background: #f8f4ea; border-color: #e3d5b8; }
+        .color-card.theme-blue { background: #dceffb; border-color: #92c9e8; }
+        .color-card.theme-gray { background: #e1f4ef; border-color: #8fd0bf; }
         /* Stoğu tükenen (net toplam 0) renk/parça/ebat kartları: silinmek yerine gri işaretlenir */
         .color-card.is-depleted.theme-blue, .color-card.is-depleted.theme-gray { background: #eceef0; border-color: #c7cbd1; }
         .color-card.is-depleted .badge-total { background: rgba(255,255,255,0.5); color: #6b7280; }
@@ -119,10 +172,10 @@
 
         /* Renk kartı: dolgun daire, ince pembe-kırmızı çerçeve */
         .delete-corner-btn.dc-color {
-            width: 27px; height: 27px; border-radius: 50%; background: #ffffff; color: #b0524f;
-            border: 1.5px solid #e3cfcd; font-size: 0.78rem; box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+            width: 27px; height: 27px; border-radius: 50%; background: #ffffff; color: #b6543c;
+            border: 1.5px solid #e8d3c8; font-size: 0.78rem; box-shadow: 0 1px 2px rgba(0,0,0,0.12);
         }
-        .delete-corner-btn.dc-color:active { background: #f7ecec; color: #8f3c3a; }
+        .delete-corner-btn.dc-color:active { background: #faeee8; color: #8f3c3a; }
 
         /* Parça kartı: yuvarlak köşeli kare, mat mavi-gri çerçeve */
         .delete-corner-btn.dc-part {
@@ -145,24 +198,46 @@
         .entity-name { font-weight: 700; font-size: 1.08rem; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .edit-name-btn { background: none; border: none; color: #5b6472; width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.88rem; opacity: 0.75; }
         .edit-name-btn:active { background: rgba(0,0,0,0.08); opacity: 1; }
-        .edit-name-btn.confirm-btn { color: #1e8449; opacity: 1; animation: fieldAppear 0.22s ease; }
+        .edit-name-btn.confirm-btn { color: #17806a; opacity: 1; animation: fieldAppear 0.22s ease; }
         .edit-name-btn.confirm-btn:active { background: rgba(30,132,73,0.14); }
         @keyframes fieldAppear { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .inline-edit-input { border: 2px solid var(--primary); border-radius: 8px; padding: 8px 10px; font-weight: 700; text-transform: uppercase; width: 100%; min-height: 42px; background: #fff; font-size: 1rem; animation: fieldAppear 0.22s ease; transition: border-color 0.15s ease, transform 0.15s ease; }
+        .inline-edit-input { border: 2px solid var(--primary); border-radius: 8px; padding: 8px 10px; font-weight: 700; text-transform: uppercase; width: 100%; min-height: 42px; background: #fff; font-size: 1rem; animation: fieldAppear 0.22s ease; transition: border-color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .inline-edit-input:focus { outline: none; border-color: var(--accent); }
-        .badge-total { background: rgba(255,255,255,0.65); color: #16304f; font-size: 0.72rem; font-weight: 700; padding: 5px 9px; border-radius: 14px; white-space: nowrap; line-height: 1.3; }
+        .badge-total { background: rgba(255,255,255,0.65); color: var(--primary); font-size: 0.72rem; font-weight: 700; padding: 5px 9px; border-radius: 14px; white-space: nowrap; line-height: 1.3; display: inline-flex; align-items: center; gap: 5px; }
+        .size-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .size-badge {
+            display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.7); color: var(--primary);
+            font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; border: 1px solid rgba(20,69,107,0.15);
+        }
+        .size-badge i { font-size: 0.62rem; opacity: 0.7; }
+        .size-badge.is-depleted { background: rgba(255,255,255,0.4); color: #8a93a0; border-color: rgba(0,0,0,0.08); text-decoration: line-through; }
         .icon-btn { background: none; border: none; color: #6b7280; font-size: 1.15rem; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
         .icon-btn:active { background: rgba(0,0,0,0.08); }
-        .icon-btn.delete-btn:active { color: #d9534f; background: rgba(217,83,79,0.12); }
+        .icon-btn.delete-btn:active { color: #c9553d; background: rgba(217,83,79,0.12); }
         .toggle-icon { font-size: 1.3rem; color: var(--primary); width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; transition: transform .2s; flex-shrink: 0; }
         .toggle-icon.collapsed { transform: rotate(-90deg); }
         .toggle-icon:active { background: rgba(0,0,0,0.08); }
 
         .collapsible-body {
             max-height: 0; overflow: hidden;
-            transition: max-height 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+            transition: max-height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .collapsible-body.open { max-height: 3000px; }
+
+        /* Bir çekmece açıldığında içindeki kartlar bir anda değil, yukarıdan aşağıya
+           sırayla (kademeli/cascade) belirginleşir - çekmece tam açılana kadar alttaki
+           kartlar görünmez, sırası gelince hızlıca belirir. */
+        @keyframes cascadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .cascade-child { animation: cascadeIn 0.15s ease-out both; }
+        @keyframes cascadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-6px); }
+        }
+        .cascade-child-out { animation: cascadeOut 0.13s ease-in both; }
+        @media (prefers-reduced-motion: reduce) { .cascade-child, .cascade-child-out { animation: none; } }
 
         .parts-container { padding: 10px 10px 12px; background: rgba(255,255,255,0.35); }
 
@@ -195,6 +270,8 @@
 
         .btn-add-inline { width: 100%; min-height: 46px; border-radius: 10px; border: 2px dashed #b9c2cd; background: rgba(255,255,255,0.5); color: var(--secondary); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.92rem; }
         .btn-add-inline:active { background: rgba(0,0,0,0.06); }
+        /* Çıkart modunda yeni renk/parça/ebat oluşturmak anlamsız - bu butonlar gizlenir */
+        body.mode-outgoing .btn-add-color-top, body.mode-outgoing .btn-add-inline { display: none; }
 
         .toast-container { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 92vw; width: 420px; }
         .toast-container .toast { transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1); transform: translateY(10px); }
@@ -211,24 +288,24 @@
         .note-btn { background: none; border: none; color: #9aa1ab; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
         .note-btn:active { background: rgba(0,0,0,0.08); }
         .note-btn.has-note { color: #3d7ab5; }
-        .note-preview { display: inline-block; margin-top: 4px; background: #e5f1fb; color: #33627f; font-size: 0.72rem; font-style: italic; padding: 4px 9px; border-radius: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: max-height 0.2s ease, background-color 0.18s ease, transform 0.15s ease; max-height: 24px; }
+        .note-preview { display: inline-block; margin-top: 4px; background: #e5f1fb; color: #33627f; font-size: 0.72rem; font-style: italic; padding: 4px 9px; border-radius: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: max-height 0.2s ease, background-color 0.18s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); max-height: 24px; }
         .note-preview.expanded { white-space: normal; overflow: visible; text-overflow: unset; max-height: 400px; }
         .note-textarea { width: 100%; border: 1.5px solid #ccc; border-radius: 10px; padding: 10px; font-size: 1rem; min-height: 100px; resize: vertical; }
         .note-textarea:focus { outline: none; border-color: var(--primary); }
         .qty-stepper { display: flex; align-items: stretch; gap: 8px; justify-content: center; }
         .step-btn { width: 54px; min-height: 58px; border: 1.5px solid #ccc; border-radius: 10px; background: #f4f6f9; font-size: 1.3rem; font-weight: 700; color: #333; flex-shrink: 0; }
         .step-btn:active { background: #dfe4ea; transform: scale(0.94); }
-        .qty-input { width: 120px; min-height: 58px; text-align: center; border: 1.5px solid #ccc; border-radius: 10px; font-size: 1.5rem; font-weight: 700; transition: transform 0.15s ease, border-color 0.15s ease; }
-        .qty-input.incoming-active { border-color: #27ae60; background: #f0fff4; }
-        .qty-input.outgoing-active { border-color: #e74c3c; background: #fff5f5; }
+        .qty-input { width: 120px; min-height: 58px; text-align: center; border: 1.5px solid #ccc; border-radius: 10px; font-size: 1.5rem; font-weight: 700; transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease; }
+        .qty-input.incoming-active { border-color: #1c9c81; background: #e6f7f3; }
+        .qty-input.outgoing-active { border-color: #e0623f; background: #fdece7; }
 
         /* History */
         .history-item { background: #f8fafc; border: 1.5px solid #e5e9ee; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
         .history-item:last-child { margin-bottom: 0; }
         .history-row-main { display: flex; align-items: center; gap: 10px; }
         .history-type-icon { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; }
-        .history-type-icon.incoming { background: #27ae60; }
-        .history-type-icon.outgoing { background: #e74c3c; }
+        .history-type-icon.incoming { background: #1c9c81; }
+        .history-type-icon.outgoing { background: #e0623f; }
         .history-row-info { flex: 1; min-width: 0; }
         .history-row-title { font-weight: 700; font-size: 0.95rem; color: var(--text); }
         .history-thickness-pill { display: inline-block; background: #eef2f7; color: var(--secondary); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
@@ -242,28 +319,46 @@
         .history-archived-badge { background: #e2e3e5; color: #41464b; font-size: 0.64rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 4px; }
         .history-list { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
         #globalHistoryModal .history-list { max-height: 68vh; }
-        .history-filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .history-filter-bar {
+            display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin-bottom: 12px;
+            width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0;
+            overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: 2px 2px 4px;
+        }
+        .history-filter-bar::-webkit-scrollbar { display: none; }
         .history-filter-select {
-            flex: 1 1 calc(50% - 4px); min-width: 110px; min-height: 42px; border: 1.5px solid #ccc; border-radius: 10px;
-            padding: 6px 10px; font-size: 0.82rem; background: #fff; color: var(--primary);
+            flex: 0 0 auto; appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            border: none; border-radius: 16px; min-height: 32px; max-width: 108px;
+            padding: 6px 20px 6px 10px; font-size: 0.72rem; font-weight: 600; color: var(--secondary);
+            background-color: #eef2f5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%235b7688' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 8px center;
+            text-overflow: ellipsis; transition: background-color 0.15s ease, color 0.15s ease;
         }
-        .history-filter-select:focus { outline: none; border-color: var(--primary); }
+        @media (max-width: 400px) {
+            .history-filter-select { max-width: 84px; font-size: 0.68rem; padding: 6px 18px 6px 8px; }
+        }
+        .history-filter-select:focus { outline: none; background-color: #e2e8ed; }
         .history-filter-clear {
-            flex: 0 0 42px; min-height: 42px; border: 1.5px solid #ccc; border-radius: 10px; background: #f5f5f5; color: #777;
-            display: flex; align-items: center; justify-content: center;
+            flex: 0 0 30px; width: 30px; height: 30px; border: none; border-radius: 50%; background: transparent; color: #a7afb8;
+            display: flex; align-items: center; justify-content: center; font-size: 0.76rem; transition: background-color 0.15s ease, color 0.15s ease;
         }
-        .history-filter-clear:active { background: #e8e8e8; }
+        .history-filter-clear:active { background: #eef2f5; color: var(--secondary); }
         .history-row-qty { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
-        .history-qty-edit { width: 56px; min-height: 38px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; font-size: 0.95rem; transition: transform 0.15s ease; }
+        .history-qty-edit { width: 56px; min-height: 38px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; font-size: 0.95rem; transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .history-qty-unit { font-size: 0.72rem; color: var(--secondary); }
         .history-row-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #dbe0e6; }
-        .history-datetime-edit { flex: 1; min-width: 0; min-height: 36px; border-radius: 8px; border: 1.5px solid #ccc; padding: 4px 6px; font-size: 0.76rem; color: var(--secondary); transition: transform 0.15s ease; }
+        .history-datetime-edit { flex: 1; min-width: 0; min-height: 36px; border-radius: 8px; border: 1.5px solid #ccc; padding: 4px 6px; font-size: 0.76rem; color: var(--secondary); transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .history-row-controls { display: flex; gap: 4px; flex-shrink: 0; }
         .history-move-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff; color: var(--secondary); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; }
         .history-move-btn:active { background: #eef2f7; }
         .history-move-btn:disabled { opacity: 0.25; }
-        .history-delete-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid #e3cfcd; background: #fff; color: #b0524f; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; }
-        .history-delete-btn:active { background: #f7ecec; }
+        .history-delete-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid #e8d3c8; background: #fff; color: #b6543c; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; }
+        .history-delete-btn:active { background: #faeee8; }
+        .history-restore-point-btn {
+            display: flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px; border-radius: 8px;
+            border: 1.5px solid #1f8a71; background: #e3f5f0; color: #146654; font-size: 0.74rem; font-weight: 700; flex-shrink: 0;
+        }
+        .history-restore-point-btn:active { background: #cceee6; }
 
         .modal-dialog { margin: 1.2rem auto; max-width: 95%; }
         .modal-content { border-radius: 14px; }
@@ -290,7 +385,7 @@
         }
         .backup-restore-btn:active { background: #dde9f6; }
         .modal-footer { padding: 14px 18px; border-top: 1px solid var(--border); gap: 8px; }
-        .modal-body { padding: 18px; overscroll-behavior: contain; }
+        .modal-body { padding: 18px; overscroll-behavior: contain; overflow-x: hidden; }
         .modal-footer .btn { min-height: 50px; font-size: 1rem; flex: 1; }
 
         .list-modal {
@@ -317,7 +412,7 @@
         .note-preview-list {
             display: inline-block; margin-top: 4px; background: #e5f1fb; color: #33627f; font-size: 0.72rem; font-style: italic;
             padding: 4px 9px; border-radius: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
-            transition: max-height 0.2s ease, background-color 0.18s ease, transform 0.15s ease; max-height: 24px;
+            transition: max-height 0.2s ease, background-color 0.18s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); max-height: 24px;
         }
         .note-preview-list.expanded { white-space: normal; overflow: visible; text-overflow: unset; max-height: 400px; }
         .list-part-qty { display: flex; gap: 8px; font-size: 0.8rem; flex-shrink: 0; }
@@ -329,13 +424,32 @@
 </head>
 <body>
 
+    <div id="loginOverlay">
+        <div class="login-box">
+            <i class="fas fa-lock login-icon"></i>
+            <h2>Mobilya Parça Stok Takibi</h2>
+            <p class="login-subtitle">Devam etmek için şifreyi girin</p>
+            <input type="password" id="loginPasswordInput" class="login-password-input" placeholder="Şifre" inputmode="numeric" autocomplete="off">
+            <button type="button" id="loginSubmitBtn" class="login-submit-btn" disabled><i class="fas fa-spinner fa-spin me-2"></i>Yükleniyor...</button>
+            <p id="loginError" class="login-error"></p>
+        </div>
+    </div>
+
     <div id="initialLoadingOverlay">
         <div class="loading-spinner"></div>
         <p>Veriler yükleniyor, lütfen bekleyin...</p>
     </div>
 
     <div class="app-header">
-        <div class="container"><h1><i class="fas fa-chair"></i>Mobilya Parça Stok Takibi</h1></div>
+        <div class="container header-flex">
+            <h1><i class="fas fa-chair"></i>Mobilya Parça Stok Takibi</h1>
+            <button class="header-settings-btn" id="settingsBtn" title="Ayarlar"><i class="fas fa-cog"></i></button>
+        </div>
+    </div>
+
+    <div id="multiTabWarning" class="multi-tab-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Bu uygulama başka bir cihaz/sekmede de açık. Aynı anda değişiklik yapmayın, çakışma olabilir.</span>
     </div>
 
     <div class="container">
@@ -354,6 +468,7 @@
                 <button class="btn-tool" id="importBtn" title="İçe Aktar (JSON)"><i class="fas fa-upload"></i></button>
                 <button class="btn-tool" id="listBtn" title="Parça Bazlı Genel Bakış"><i class="fas fa-list"></i></button>
                 <button class="btn-tool" id="globalHistoryBtn" title="Tüm İşlem Geçmişi"><i class="fas fa-history"></i></button>
+                <button class="btn-tool" id="bulkAddBtn" title="Aynı Ebatı Birden Fazla Renge Ekle"><i class="fas fa-layer-group"></i></button>
                 <button class="btn-tool excel" id="excelBtn" title="Excel Olarak İndir"><i class="fas fa-file-excel"></i></button>
             </div>
             <input type="file" id="importFileInput" accept=".json" style="display:none;">
@@ -391,13 +506,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="qtyModalLabel">Miktar Girişi</h5>
+                    <h5 class="modal-title" id="qtyModalLabel"><i class="fas fa-calculator me-2"></i>Miktar Girişi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="qtyModalBody"></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                    <button type="button" class="btn btn-primary" id="qtyModalConfirmBtn">Onayla</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-xmark me-1"></i>Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="qtyModalConfirmBtn"><i class="fas fa-check me-1"></i>Onayla</button>
                 </div>
             </div>
         </div>
@@ -408,15 +523,15 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="noteModalLabel">Açıklama</h5>
+                    <h5 class="modal-title" id="noteModalLabel"><i class="fas fa-note-sticky me-2"></i>Açıklama</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <textarea id="noteModalTextarea" class="note-textarea" rows="4" maxlength="300" placeholder="Bu ebat için açıklama yazın..."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                    <button type="button" class="btn btn-primary" id="noteModalSaveBtn">Kaydet</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-xmark me-1"></i>Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="noteModalSaveBtn"><i class="fas fa-floppy-disk me-1"></i>Kaydet</button>
                 </div>
             </div>
         </div>
@@ -427,7 +542,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Tüm İşlem Geçmişi</h5>
+                    <h5 class="modal-title"><i class="fas fa-clock-rotate-left me-2"></i>Tüm İşlem Geçmişi</h5>
                     <button type="button" class="btn-icon-header" id="autoBackupsBtn" title="Otomatik Yedekler"><i class="fas fa-cloud"></i></button>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -454,7 +569,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Otomatik Yedekler</h5>
+                    <h5 class="modal-title"><i class="fas fa-cloud me-2"></i>Otomatik Yedekler</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -465,13 +580,98 @@
         </div>
     </div>
 
+    <!-- Ayarlar Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Ayarlar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="settings-section-title mb-3"><i class="fas fa-key me-2"></i>Şifre Değiştir</h6>
+                    <div class="mb-3">
+                        <label class="settings-label"><i class="fas fa-lock me-1"></i>Mevcut Şifre</label>
+                        <input type="password" id="settingsCurrentPassword" class="login-password-input" style="font-size:1rem; letter-spacing:2px;" inputmode="numeric" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="settings-label"><i class="fas fa-key me-1"></i>Yeni Şifre</label>
+                        <input type="password" id="settingsNewPassword" class="login-password-input" style="font-size:1rem; letter-spacing:2px;" inputmode="numeric" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="settings-label"><i class="fas fa-key me-1"></i>Yeni Şifre (Tekrar)</label>
+                        <input type="password" id="settingsNewPasswordConfirm" class="login-password-input" style="font-size:1rem; letter-spacing:2px;" inputmode="numeric" autocomplete="off">
+                    </div>
+                    <button type="button" id="settingsChangePasswordBtn" class="login-submit-btn"><i class="fas fa-key me-2"></i>Şifreyi Güncelle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Haftalık Yedek Hatırlatıcı Modal -->
+    <div class="modal fade" id="backupReminderModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cloud-download-alt me-2"></i>Yedek Hatırlatıcı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" id="backupReminderCloseBtn"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Verilerinizin bir kopyasını bilgisayarınıza indirmenizi öneririz. Bu, buluttaki otomatik yedeklere ek bir güvenlik katmanı sağlar.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="backupReminderLaterBtn"><i class="fas fa-clock me-1"></i>Daha Sonra Hatırlat</button>
+                    <button type="button" class="btn btn-primary" id="backupReminderDownloadBtn"><i class="fas fa-download me-1"></i>Şimdi İndir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aynı Ebatı Birden Fazla Renge Ekleme Modal -->
+    <div class="modal fade" id="bulkSizeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkSizeModalTitle"><i class="fas fa-layer-group me-2"></i>Aynı Ebatı Birden Fazla Renge Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="settings-label"><i class="fas fa-puzzle-piece me-1"></i>Parça Adı</label>
+                        <input type="text" id="bulkPartName" class="form-control" list="bulkPartNameList" placeholder="Örn: KLAPA">
+                        <datalist id="bulkPartNameList"></datalist>
+                    </div>
+                    <div class="mb-2">
+                        <label class="settings-label"><i class="fas fa-ruler-combined me-1"></i>Ebat</label>
+                        <input type="text" id="bulkSizeName" class="form-control" list="bulkSizeNameList" placeholder="Örn: 392X162">
+                        <datalist id="bulkSizeNameList"></datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label class="settings-label"><i class="fas fa-layer-group me-1"></i>Kalınlık</label>
+                        <select id="bulkThickness" class="form-control">
+                            <option value="18">18mm</option>
+                            <option value="30">30mm</option>
+                        </select>
+                    </div>
+                    <label class="settings-label"><i class="fas fa-palette me-1"></i>Renk Bazlı Miktarlar (boş bırakılanlar atlanır)</label>
+                    <div id="bulkColorRows" class="bulk-color-rows"></div>
+                    <button type="button" id="bulkAddColorRowBtn" class="btn-add-inline mt-2"><i class="fas fa-plus"></i> Yeni Renk Satırı Ekle</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-xmark me-1"></i>Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="bulkSizeConfirmBtn"><i class="fas fa-check me-1"></i>Uygula</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Geçmiş Modal -->
     <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="historyModalLabel">İşlem Geçmişi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h5 class="modal-title" id="historyModalLabel"><i class="fas fa-clock-rotate-left me-2"></i>İşlem Geçmişi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body"><div id="historyContent" class="history-list"></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-xmark me-1"></i>Kapat</button></div>
             </div>
         </div>
     </div>
@@ -480,11 +680,11 @@
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Silme Onayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h5 class="modal-title"><i class="fas fa-triangle-exclamation me-2"></i>Silme Onayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body"><p id="deleteMessage"></p></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sil</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-xmark me-1"></i>Vazgeç</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn"><i class="fas fa-trash-alt me-1"></i>Sil</button>
                 </div>
             </div>
         </div>
@@ -494,11 +694,11 @@
     <div class="modal fade" id="modeChangeModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Mod Değiştirme Onayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h5 class="modal-title"><i class="fas fa-arrows-rotate me-2"></i>Mod Değiştirme Onayı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body"><p id="modeChangeMessage"></p><p class="text-muted" id="modeChangeStepText"></p></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancelModeChangeBtn">Vazgeç</button>
-                    <button type="button" class="btn btn-primary" id="confirmModeChangeBtn">Evet</button>
+                    <button type="button" class="btn btn-secondary" id="cancelModeChangeBtn"><i class="fas fa-xmark me-1"></i>Vazgeç</button>
+                    <button type="button" class="btn btn-primary" id="confirmModeChangeBtn"><i class="fas fa-check me-1"></i>Evet</button>
                 </div>
             </div>
         </div>
@@ -523,6 +723,8 @@
         const dbRef = database.ref('inventory');
         const archiveRef = database.ref('historyArchive');
         const backupRef = database.ref('autoBackups');
+        const settingsRef = database.ref('appSettings');
+        const presenceRef = database.ref('presence');
 
         (function () {
             // ---------- STATE ----------
@@ -535,6 +737,11 @@
             let historyArchive = []; // silinen ebatların geçmiş kayıtları (renk/parça/ebat silindiğinde de burada kalır)
             let autoBackups = []; // her giriş/çıkış işleminden sonra alınan, buluttaki son N tam-veri yedeği (eskiden yeniye)
             const MAX_BACKUPS = 20; // Firebase ücretsiz (Spark) plan sınırlarına göre güvenli, geniş paylı bir sayı
+            let appSettings = { password: '486400', nextBackupReminderTs: null };
+            let settingsLoaded = false;
+            let isUnlocked = false;
+            let afterUnlockDone = false;
+            const mySessionId = generateId();
             let openColors = {};
             let openParts = {};
             let openSizes = {};
@@ -710,6 +917,7 @@
                     dataLoaded = true;
                     hideInitialLoadingOverlay();
                     render();
+                    maybeRunPostUnlockTasks();
                 }, (error) => { console.error(error); showToast('Veritabanına bağlanılamadı.', 'danger'); });
             }
             function saveToFirebase() {
@@ -743,6 +951,92 @@
                 autoBackups.push(snapshot);
                 while (autoBackups.length > MAX_BACKUPS) autoBackups.shift();
                 backupRef.set(autoBackups).catch(err => console.error('Yedek yazma hatası:', err));
+            }
+
+            // ---------- AYARLAR (ŞİFRE) / GİRİŞ EKRANI / ÇOKLU-SEKME UYARISI ----------
+            function initSettingsListener() {
+                settingsRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        appSettings.password = (data.password !== undefined && data.password !== null && String(data.password) !== '') ? String(data.password) : '486400';
+                        appSettings.nextBackupReminderTs = data.nextBackupReminderTs || null;
+                    } else {
+                        // İlk kurulum: varsayılan şifreyi buluta yaz
+                        settingsRef.set({ password: '486400', nextBackupReminderTs: null });
+                    }
+                    settingsLoaded = true;
+                    const btn = document.getElementById('loginSubmitBtn');
+                    if (btn && !isUnlocked) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-unlock me-2"></i>Giriş Yap'; }
+                    maybeRunPostUnlockTasks();
+                }, (error) => console.error('Ayarlar okunamadı:', error));
+            }
+            function hideLoginOverlay() {
+                const overlay = document.getElementById('loginOverlay');
+                if (overlay) overlay.remove();
+            }
+            function attemptLogin() {
+                if (!settingsLoaded) return;
+                const input = document.getElementById('loginPasswordInput');
+                const errorEl = document.getElementById('loginError');
+                if (input.value === appSettings.password) {
+                    isUnlocked = true;
+                    sessionStorage.setItem('stok_unlocked', '1');
+                    hideLoginOverlay();
+                    maybeRunPostUnlockTasks();
+                } else {
+                    errorEl.textContent = 'Yanlış şifre, tekrar deneyin.';
+                    input.value = '';
+                    input.focus();
+                    const box = document.querySelector('.login-box');
+                    if (box) { box.classList.add('shake'); setTimeout(() => box.classList.remove('shake'), 400); }
+                }
+            }
+            function changePassword() {
+                const curEl = document.getElementById('settingsCurrentPassword');
+                const newEl = document.getElementById('settingsNewPassword');
+                const confirmEl = document.getElementById('settingsNewPasswordConfirm');
+                if (curEl.value !== appSettings.password) { showToast('Mevcut şifre yanlış.', 'danger'); return; }
+                if (!newEl.value || newEl.value.length < 4) { showToast('Yeni şifre en az 4 karakter olmalı.', 'warning'); return; }
+                if (newEl.value !== confirmEl.value) { showToast('Yeni şifreler birbiriyle uyuşmuyor.', 'warning'); return; }
+                appSettings.password = newEl.value;
+                settingsRef.update({ password: newEl.value });
+                curEl.value = ''; newEl.value = ''; confirmEl.value = '';
+                showToast('Şifre güncellendi.', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+                if (modal) modal.hide();
+            }
+            // Sayfa yüklendiğinde/kilit açıldığında bekleyen görevleri (yedek hatırlatma, eş-zamanlı oturum takibi)
+            // hem "kilit açıldı" hem "veri yüklendi" hem "ayarlar yüklendi" olana kadar bekletip TEK SEFER çalıştırır.
+            function maybeRunPostUnlockTasks() {
+                if (afterUnlockDone) return;
+                if (!isUnlocked || !dataLoaded || !settingsLoaded) return;
+                afterUnlockDone = true;
+                startPresenceTracking();
+                maybeShowBackupReminder();
+            }
+            function startPresenceTracking() {
+                const myRef = presenceRef.child(mySessionId);
+                myRef.set({ ts: Date.now() });
+                myRef.onDisconnect().remove();
+                setInterval(() => myRef.update({ ts: Date.now() }), 30000);
+                presenceRef.on('value', (snapshot) => {
+                    const data = snapshot.val() || {};
+                    const now = Date.now();
+                    const othersActive = Object.keys(data).filter(id => id !== mySessionId && data[id] && (now - data[id].ts) < 90000);
+                    const banner = document.getElementById('multiTabWarning');
+                    if (banner) banner.style.display = othersActive.length > 0 ? 'flex' : 'none';
+                }, (error) => console.error('Oturum takibi hatası:', error));
+                window.addEventListener('beforeunload', () => { myRef.remove(); });
+            }
+            function maybeShowBackupReminder() {
+                const next = appSettings.nextBackupReminderTs;
+                if (next && Date.now() < next) return;
+                new bootstrap.Modal(document.getElementById('backupReminderModal')).show();
+            }
+            function setNextBackupReminder(daysFromNow) {
+                const ts = Date.now() + daysFromNow * 24 * 60 * 60 * 1000;
+                appSettings.nextBackupReminderTs = ts;
+                settingsRef.update({ nextBackupReminderTs: ts });
             }
 
             // ---------- EKLEME ----------
@@ -910,6 +1204,119 @@
                 saveBackupSnapshot();
                 if (cascade.sizeDeleted) { notifyCascadeDelete(cascade); }
                 else { showToast(`${thickness}mm için ${qty} adet ${isIncoming ? 'giriş' : 'çıkış'} kaydedildi.`, 'success'); }
+            }
+
+            // ---------- AYNI EBATI BİRDEN FAZLA RENGE EKLEME (TOPLU GİRİŞ/ÇIKIŞ) ----------
+            function openBulkSizeModal() {
+                document.getElementById('bulkPartName').value = '';
+                document.getElementById('bulkSizeName').value = '';
+                document.getElementById('bulkThickness').value = '18';
+                document.getElementById('bulkSizeModalTitle').innerHTML = currentMode === 'incoming'
+                    ? '<i class="fas fa-layer-group me-2"></i>Aynı Ebatı Birden Fazla Renge Ekle (Giriş)'
+                    : '<i class="fas fa-layer-group me-2"></i>Aynı Ebattan Birden Fazla Renkten Çıkart (Çıkış)';
+
+                const partNames = [...new Set(inventory.flatMap(c => c.parts.map(p => p.name)).filter(Boolean))].sort((a, b) => trSort(a, b));
+                document.getElementById('bulkPartNameList').innerHTML = partNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+                const sizeNames = [...new Set(inventory.flatMap(c => c.parts.flatMap(p => p.sizes.map(s => s.name))).filter(Boolean))].sort((a, b) => trSort(a, b));
+                document.getElementById('bulkSizeNameList').innerHTML = sizeNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+
+                const rowsEl = document.getElementById('bulkColorRows');
+                const sortedColors = [...inventory].sort((a, b) => trSort(a.name, b.name));
+                rowsEl.innerHTML = sortedColors.map(c => `
+                    <div class="bulk-color-row" data-color-id="${c.id}">
+                        <span class="bulk-color-name">${escapeHtml(c.name || 'İsimsiz Renk')}</span>
+                        <input type="number" min="0" inputmode="numeric" class="bulk-color-qty" placeholder="0">
+                    </div>`).join('');
+
+                new bootstrap.Modal(document.getElementById('bulkSizeModal')).show();
+            }
+            function addBulkColorRow() {
+                const rowsEl = document.getElementById('bulkColorRows');
+                const div = document.createElement('div');
+                div.className = 'bulk-color-row';
+                div.setAttribute('data-new-color', '1');
+                div.innerHTML = `<input type="text" class="bulk-color-name-input" placeholder="Yeni renk adı">
+                                  <input type="number" min="0" inputmode="numeric" class="bulk-color-qty" placeholder="0">`;
+                rowsEl.appendChild(div);
+                div.querySelector('.bulk-color-name-input').focus();
+            }
+            function confirmBulkSizeEntry() {
+                const partName = document.getElementById('bulkPartName').value.trim().toLocaleUpperCase('tr-TR');
+                const sizeName = document.getElementById('bulkSizeName').value.trim().toLocaleUpperCase('tr-TR');
+                const thickness = parseInt(document.getElementById('bulkThickness').value, 10);
+                if (!partName) { showToast('Lütfen parça adını girin.', 'warning'); return; }
+                if (!sizeName) { showToast('Lütfen ebat adını girin.', 'warning'); return; }
+
+                const isIncoming = currentMode === 'incoming';
+                const rows = [...document.querySelectorAll('#bulkColorRows .bulk-color-row')];
+                const jobs = [];
+                let hasError = false;
+
+                rows.forEach(row => {
+                    const qtyStr = row.querySelector('.bulk-color-qty').value;
+                    const qty = parseInt(qtyStr, 10);
+                    if (!qtyStr || isNaN(qty) || qty <= 0) return; // boş satırlar atlanır
+                    const isNewColor = row.getAttribute('data-new-color') === '1';
+                    if (isNewColor) {
+                        const nameInput = row.querySelector('.bulk-color-name-input');
+                        const name = nameInput.value.trim().toLocaleUpperCase('tr-TR');
+                        if (!name) { hasError = true; showToast('Yeni renk satırlarında renk adı boş olamaz.', 'warning'); return; }
+                        if (!isIncoming) { hasError = true; showToast(`"${name}" henüz mevcut olmadığı için çıkış yapılamaz.`, 'danger'); return; }
+                        jobs.push({ colorId: null, newColorName: name, qty });
+                    } else {
+                        const colorId = row.getAttribute('data-color-id');
+                        jobs.push({ colorId, newColorName: null, qty });
+                    }
+                });
+
+                if (hasError) return;
+                if (!jobs.length) { showToast('Lütfen en az bir renk için miktar girin.', 'warning'); return; }
+
+                // Çıkış modunda önce tüm satırlar için stok yeterliliğini kontrol et (kısmi uygulamayı engelle)
+                if (!isIncoming) {
+                    for (const job of jobs) {
+                        const color = findColor(job.colorId);
+                        if (!color) { hasError = true; continue; }
+                        const part = color.parts.find(p => (p.name || '').toLocaleUpperCase('tr-TR') === partName);
+                        const size = part ? part.sizes.find(s => (s.name || '').toLocaleUpperCase('tr-TR') === sizeName) : null;
+                        const currentNet = size ? (thickness === 18 ? net18(size) : net30(size)) : 0;
+                        if (job.qty > currentNet) {
+                            hasError = true;
+                            showToast(`${color.name}: yetersiz stok (mevcut ${currentNet}, istenen ${job.qty}).`, 'danger');
+                        }
+                    }
+                    if (hasError) return;
+                }
+
+                let totalQty = 0, colorCount = 0;
+                jobs.forEach(job => {
+                    let color;
+                    if (job.newColorName) {
+                        color = { id: generateId(), name: job.newColorName, parts: [] };
+                        inventory.push(color);
+                    } else {
+                        color = findColor(job.colorId);
+                    }
+                    if (!color) return;
+                    let part = color.parts.find(p => (p.name || '').toLocaleUpperCase('tr-TR') === partName);
+                    if (!part) { part = { id: generateId(), name: partName, note: '', sizes: [] }; color.parts.push(part); }
+                    let size = part.sizes.find(s => (s.name || '').toLocaleUpperCase('tr-TR') === sizeName);
+                    if (!size) { size = { id: generateId(), name: sizeName, note: '', incoming18: 0, outgoing18: 0, incoming30: 0, outgoing30: 0, history: [] }; part.sizes.push(size); }
+
+                    const now = Date.now();
+                    const entry = { id: generateId(), type: isIncoming ? 'incoming' : 'outgoing', thickness, qty: job.qty, ts: now, order: now };
+                    if (isIncoming) { if (thickness === 18) size.incoming18 += job.qty; else size.incoming30 += job.qty; }
+                    else { if (thickness === 18) size.outgoing18 += job.qty; else size.outgoing30 += job.qty; }
+                    size.history.push(entry);
+                    totalQty += job.qty; colorCount++;
+                });
+
+                saveToFirebase();
+                saveBackupSnapshot();
+                render();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bulkSizeModal'));
+                if (modal) modal.hide();
+                showToast(`${colorCount} rengin "${partName} / ${sizeName}" ${thickness}mm ebatına toplam ${totalQty} adet ${isIncoming ? 'giriş' : 'çıkış'} kaydedildi.`, 'success');
             }
 
             // ---------- TARİH/SAAT DÖNÜŞÜM YARDIMCILARI ----------
@@ -1127,6 +1534,59 @@
                 renderGlobalHistoryModal();
             }
 
+            // Silinmiş bir rengi, arşivdeki belirli bir işlem noktasından ÖNCEKİ tüm kayıtlar
+            // uygulanmış haliyle geri getirir. O işlem ve sonrasındaki kayıtlar arşivde kalır
+            // (canlı veriye yansımaz) - böylece istenirse başka bir noktadan tekrar denenebilir.
+            function requestRestoreColorUpToPoint(entryId) {
+                const entry = findArchiveEntry(entryId);
+                if (!entry) return;
+                const colorName = entry.colorName;
+                const cutoffTs = entry.ts;
+                const before = historyArchive.filter(h => h.colorName === colorName && h.ts < cutoffTs);
+                const fromOrAfter = historyArchive.filter(h => h.colorName === colorName && h.ts >= cutoffTs);
+                if (!before.length) { showToast('Bu işlemden önce geri getirilecek başka kayıt yok.', 'warning'); return; }
+                const dateStr = new Date(cutoffTs).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                pendingDelete = { type: 'restore-color-point', colorId: null, partId: null, sizeId: null, entryId, sourceModal: null, backupIndex: null };
+                document.getElementById('deleteMessage').innerHTML =
+                    `<strong>"${escapeHtml(colorName)}"</strong> rengi, <strong>${dateStr}</strong> tarihli işlemden ÖNCEKİ <strong>${before.length} kayıt</strong> uygulanmış haliyle geri getirilecek. `
+                    + `Bu tarihten itibaren olan <strong>${fromOrAfter.length} kayıt arşivde kalacak</strong> (canlı veriye eklenmeyecek). Devam etmek istiyor musunuz?`;
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+            function restoreColorUpToEntry(entryId) {
+                const entry = findArchiveEntry(entryId);
+                if (!entry) return;
+                const colorName = entry.colorName;
+                const cutoffTs = entry.ts;
+                const toRestore = historyArchive.filter(h => h.colorName === colorName && h.ts < cutoffTs);
+                if (!toRestore.length) return;
+
+                const groups = {};
+                toRestore.forEach(h => {
+                    const key = (h.partName || '') + '\u0000' + (h.sizeName || '');
+                    if (!groups[key]) groups[key] = { partName: h.partName, sizeName: h.sizeName, entries: [] };
+                    groups[key].entries.push(h);
+                });
+                let lastColor = null, lastPart = null, lastSize = null;
+                Object.values(groups).forEach(g => {
+                    const sorted = [...g.entries].sort((a, b) => a.ts - b.ts);
+                    const { color, part, size } = restoreGroupFromArchive(colorName, g.partName, g.sizeName, sorted);
+                    lastColor = color; lastPart = part; lastSize = size;
+                });
+
+                historyArchive = historyArchive.filter(h => !(h.colorName === colorName && h.ts < cutoffTs));
+
+                if (lastColor) { openColors[lastColor.id] = true; scrollAfterRender = 'color-card-' + lastColor.id; }
+                if (lastPart) openParts[lastPart.id] = true;
+                if (lastSize) openSizes[lastSize.id] = true;
+
+                saveArchiveToFirebase();
+                saveToFirebase();
+                saveBackupSnapshot();
+                showToast(`"${colorName}" rengi geri getirildi (${toRestore.length} kayıt uygulandı).`, 'success');
+                render();
+                renderGlobalHistoryModal();
+            }
+
             function buildHistoryDeleteMessage(entry) {
                 if (!entry) return 'Bu geçmiş kaydını silmek istediğinize emin misiniz?';
                 const isIncoming = entry.type === 'incoming';
@@ -1176,6 +1636,7 @@
                     <div class="history-row-footer">
                         <input type="datetime-local" class="history-datetime-edit" value="${dateVal}">
                         <div class="history-row-controls">
+                            ${e.archived && e.colorDeleted ? `<button class="history-restore-point-btn" title="&quot;${escapeHtml(e.colorName)}&quot; rengini bu işlemden önceki haliyle geri getir"><i class="fas fa-undo"></i> Geri Getir</button>` : ''}
                             <button class="history-move-btn" data-move="up" ${isFirst ? 'disabled' : ''} title="Yukarı Taşı"><i class="fas fa-chevron-up"></i></button>
                             <button class="history-move-btn" data-move="down" ${isLast ? 'disabled' : ''} title="Aşağı Taşı"><i class="fas fa-chevron-down"></i></button>
                             <button class="history-delete-btn" title="Sil"><i class="fas fa-trash-alt"></i></button>
@@ -1188,7 +1649,7 @@
                 const { colorId, partId, sizeId } = historyContext;
                 const c = findColor(colorId), p = c ? c.parts.find(x => x.id === partId) : null, s = findSize(colorId, partId, sizeId);
                 if (!c || !p || !s) return;
-                document.getElementById('historyModalLabel').textContent = `${c.name || 'RENK'} / ${p.name || 'PARÇA'} / ${s.name || 'EBAT'} — Geçmiş`;
+                document.getElementById('historyModalLabel').innerHTML = `<i class="fas fa-clock-rotate-left me-2"></i>${c.name || 'RENK'} / ${p.name || 'PARÇA'} / ${s.name || 'EBAT'} — Geçmiş`;
                 const content = document.getElementById('historyContent');
                 if (!s.history.length) { content.innerHTML = '<p class="text-muted text-center py-3">Henüz işlem kaydı yok.</p>'; return; }
                 const sorted = [...s.history].sort((a, b) => (b.order ?? b.ts) - (a.order ?? a.ts));
@@ -1213,7 +1674,8 @@
                     entryId: h.id, type: h.type, thickness: h.thickness, qty: h.qty, ts: h.ts, order: (h.order ?? h.ts),
                     colorId: null, partId: null, sizeId: null,
                     colorName: h.colorName, partName: h.partName, sizeName: h.sizeName,
-                    archived: true
+                    archived: true,
+                    colorDeleted: !inventory.some(c => (c.name || '') === (h.colorName || ''))
                 }));
                 allEntries.sort((a, b) => b.order - a.order);
                 return allEntries;
@@ -1339,7 +1801,7 @@
                             <span class="backup-item-time">${formatRelativeTime(b.ts)}</span>
                             <span class="backup-item-detail">${dateStr} · ${colorCount} renk</span>
                         </div>
-                        <button type="button" class="backup-restore-btn" data-backup-index="${idx}">Geri Yükle</button>
+                        <button type="button" class="backup-restore-btn" data-backup-index="${idx}"><i class="fas fa-rotate-left me-1"></i>Geri Yükle</button>
                     </div>`;
                 }).join('');
                 content.innerHTML = rows;
@@ -1424,6 +1886,13 @@
                         if (modal2) modal2.hide();
                         showToast('Seçilen yedek başarıyla geri yüklendi.', 'success');
                     }
+                }
+                else if (type === 'restore-color-point') {
+                    restoreColorUpToEntry(entryId);
+                    pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null, backupIndex: null };
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                    if (modal) modal.hide();
+                    return; // restoreColorUpToEntry kendi kaydetme/render işlemini yapar
                 }
                 pendingDelete = { type: null, colorId: null, partId: null, sizeId: null, entryId: null, sourceModal: null, backupIndex: null };
                 if (archivedAny) saveArchiveToFirebase();
@@ -1510,19 +1979,41 @@
                     el.style.maxHeight = el.scrollHeight + 'px';
                 });
                 if (toggledOpenEl) {
-                    // Az önce AÇILDI: 0'dan gerçek yüksekliğe animasyonla büyüt
+                    // Az önce AÇILDI: 0'dan gerçek yüksekliğe yumuşak ama hızlı bir animasyonla büyüt
                     const target = toggledOpenEl.scrollHeight;
                     toggledOpenEl.style.maxHeight = '0px';
                     void toggledOpenEl.offsetHeight;
                     requestAnimationFrame(() => { toggledOpenEl.style.maxHeight = target + 'px'; });
+                    // İçindeki kartlar bir anda değil, yukarıdan aşağıya kademeli (cascade) belirginleşsin
+                    const contentWrap = toggledOpenEl.firstElementChild;
+                    if (contentWrap) {
+                        [...contentWrap.children].forEach((child, i) => {
+                            child.classList.remove('cascade-child');
+                            void child.offsetWidth;
+                            child.style.animationDelay = (Math.min(i, 8) * 35) + 'ms';
+                            child.classList.add('cascade-child');
+                        });
+                    }
                 } else if (toggledId) {
                     // Az önce KAPANDI: içerik hâlâ DOM'da (sadece max-height:0 ile gizli); tam yükseklikten
-                    // 0'a doğru animasyonla küçült.
+                    // 0'a doğru animasyonla küçült. İçindeki kartlar da açılıştaki gibi kademeli, ama bu
+                    // sefer TERS sırada (alttan üste) hızlıca kaybolur.
                     const closedEl = document.getElementById(toggledId);
                     if (closedEl) {
                         const fullHeight = closedEl.scrollHeight;
                         closedEl.style.maxHeight = fullHeight + 'px';
                         void closedEl.offsetHeight;
+                        const contentWrap = closedEl.firstElementChild;
+                        if (contentWrap) {
+                            const items = [...contentWrap.children];
+                            const n = items.length;
+                            items.forEach((child, i) => {
+                                child.classList.remove('cascade-child', 'cascade-child-out');
+                                void child.offsetWidth;
+                                child.style.animationDelay = (Math.min(n - 1 - i, 8) * 35) + 'ms';
+                                child.classList.add('cascade-child-out');
+                            });
+                        }
                         requestAnimationFrame(() => { closedEl.style.maxHeight = '0px'; });
                     }
                 }
@@ -1578,6 +2069,9 @@
 
                 const sizesHtml = sizesModel.map(s => renderSizeCard(colorId, p.id, s)).join('');
                 const addSizeBtnHtml = `<button class="btn-add-inline" data-action="add-size" data-color-id="${colorId}" data-part-id="${p.id}"><i class="fas fa-plus"></i> Ebat Ekle</button>`;
+                const sizeBadgesHtml = sizesModel.length
+                    ? `<div class="size-badges">${sizesModel.map(s => `<span class="size-badge ${sizeNetTotal(s) === 0 ? 'is-depleted' : ''}"><i class="fas fa-ruler-combined"></i>${escapeHtml(s.name) || 'İsimsiz'}</span>`).join('')}</div>`
+                    : '';
 
                 return `
                 <div class="part-card ${isDepleted ? 'is-depleted' : ''}" data-part-id="${p.id}">
@@ -1588,8 +2082,9 @@
                             <span class="toggle-icon ${isOpen ? '' : 'collapsed'}"><i class="fas fa-caret-down"></i></span>
                         </div>
                         <div class="card-header-stats">
-                            <span class="badge-total">Net: ${totalNet}</span>
+                            <span class="badge-total"><i class="fas fa-cubes"></i> Net: ${totalNet}</span>
                         </div>
+                        ${sizeBadgesHtml}
                     </div>
                     <div class="collapsible-body ${isOpen ? 'open' : ''}" id="cbody-part-${p.id}">
                         <div class="sizes-container">
@@ -1869,6 +2364,7 @@
                 const inc = document.getElementById('modeIncomingBtn'), out = document.getElementById('modeOutgoingBtn');
                 if (currentMode === 'incoming') { inc.classList.add('active-incoming'); out.classList.remove('active-outgoing'); }
                 else { out.classList.add('active-outgoing'); inc.classList.remove('active-incoming'); }
+                document.body.classList.toggle('mode-outgoing', currentMode === 'outgoing');
             }
 
             // ---------- OLAY YÖNETİMİ ----------
@@ -2028,6 +2524,7 @@
                     const moveBtn = e.target.closest('[data-move]');
                     if (moveBtn) { moveGlobalHistoryEntry(entryId, moveBtn.getAttribute('data-move')); return; }
                     if (e.target.closest('.history-delete-btn')) { requestDeleteGlobalEntry(entryId, archived, colorId, partId, sizeId); return; }
+                    if (e.target.closest('.history-restore-point-btn')) { requestRestoreColorUpToPoint(entryId); return; }
                 });
                 globalHistoryContentEl.addEventListener('keypress', function (e) {
                     if (e.target.classList.contains('history-qty-edit') && e.key === 'Enter') e.target.blur();
@@ -2060,9 +2557,19 @@
 
             // ---------- BAŞLATMA ----------
             function init() {
+                // Bu sekme/oturumda daha önce şifre girildiyse tekrar sorma (sekme kapanınca sıfırlanır)
+                if (sessionStorage.getItem('stok_unlocked') === '1') {
+                    isUnlocked = true;
+                    hideLoginOverlay();
+                } else {
+                    document.getElementById('loginSubmitBtn').addEventListener('click', attemptLogin);
+                    document.getElementById('loginPasswordInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') attemptLogin(); });
+                    setTimeout(() => document.getElementById('loginPasswordInput').focus(), 100);
+                }
                 initFirebaseListener();
                 initArchiveListener();
                 initBackupListener();
+                initSettingsListener();
                 attachDelegatedEvents();
                 updateModeButtons();
 
@@ -2163,6 +2670,29 @@
                 document.getElementById('importFileInput').addEventListener('change', function () {
                     if (this.files && this.files.length > 0) { importData(this.files[0]); this.value = ''; }
                 });
+
+                document.getElementById('settingsBtn').addEventListener('click', function () {
+                    new bootstrap.Modal(document.getElementById('settingsModal')).show();
+                });
+                document.getElementById('settingsChangePasswordBtn').addEventListener('click', changePassword);
+                document.getElementById('backupReminderDownloadBtn').addEventListener('click', function () {
+                    exportData();
+                    setNextBackupReminder(7);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('backupReminderModal'));
+                    if (modal) modal.hide();
+                });
+                document.getElementById('backupReminderLaterBtn').addEventListener('click', function () {
+                    setNextBackupReminder(1);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('backupReminderModal'));
+                    if (modal) modal.hide();
+                });
+                document.getElementById('backupReminderModal').addEventListener('hidden.bs.modal', function () {
+                    // Kullanıcı butonlardan birini kullanmadan (X / dışarı tıklayarak) kapattıysa da bir günlük ertelensin
+                    if (!appSettings.nextBackupReminderTs || appSettings.nextBackupReminderTs < Date.now()) setNextBackupReminder(1);
+                });
+                document.getElementById('bulkAddBtn').addEventListener('click', openBulkSizeModal);
+                document.getElementById('bulkAddColorRowBtn').addEventListener('click', addBulkColorRow);
+                document.getElementById('bulkSizeConfirmBtn').addEventListener('click', confirmBulkSizeEntry);
 
                 document.getElementById('listBtn').addEventListener('click', function () {
                     renderOverviewModal();
