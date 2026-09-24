@@ -95,8 +95,35 @@
         .bulk-color-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .bulk-color-row .bulk-color-name { flex: 1; font-weight: 600; color: var(--primary); font-size: 0.9rem; }
         .bulk-color-row .bulk-color-name-input { flex: 1; min-height: 40px; border-radius: 8px; border: 1.5px solid #ccc; padding: 0 10px; text-transform: uppercase; }
-        #bulkPartName, #bulkSizeName { text-transform: uppercase; }
         .bulk-color-row .bulk-color-qty { width: 80px; min-height: 40px; border-radius: 8px; border: 1.5px solid #ccc; text-align: center; font-weight: 700; }
+
+        /* Toplu ekle penceresi: Parça/Ebat/Kalınlık alanları - minimalist, ikon+etiket tek satırda,
+           dar giriş kutuları, mümkün olduğunca yatay (az dikey yer kaplar) */
+        .bulk-fields-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .bulk-field-col { flex: 1 1 130px; min-width: 0; }
+        .bulk-field-col-narrow { flex: 0 0 88px; }
+        .bulk-field-label {
+            display: flex; align-items: center; gap: 5px; font-size: 0.68rem; font-weight: 700; color: var(--secondary);
+            text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 3px;
+        }
+        .bulk-field-input {
+            width: 100%; min-height: 38px; border-radius: 8px; border: 1.5px solid #ccc; padding: 0 10px;
+            font-size: 0.86rem; font-weight: 600; color: var(--text); text-transform: uppercase; background: #fff;
+        }
+        .bulk-field-input:focus { outline: none; border-color: var(--accent); }
+
+        /* Özel öneri (autocomplete) kutusu - tarayıcının yerel <datalist> gösterimindeki
+           görsel tutarsızlıkların yerine, tamamen stillendirilebilir kendi açılır listemiz */
+        .autocomplete-wrap { position: relative; }
+        .autocomplete-suggestions {
+            display: none; position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+            background: #fff; border-radius: 10px; box-shadow: 0 6px 18px rgba(20,69,107,0.18);
+            max-height: 170px; overflow-y: auto; z-index: 60; border: 1px solid var(--border);
+        }
+        .autocomplete-suggestions.open { display: block; }
+        .autocomplete-suggestion-item { padding: 9px 12px; font-size: 0.82rem; font-weight: 600; color: var(--text); }
+        .autocomplete-suggestion-item:active { background: #eef2f5; }
+        .autocomplete-suggestion-item + .autocomplete-suggestion-item { border-top: 1px solid #f0f2f4; }
         #initialLoadingOverlay {
             position: fixed; inset: 0; z-index: 99999; background: var(--bg);
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
@@ -402,9 +429,14 @@
         .list-color-header { padding: 13px 15px; background: #f8fafc; font-weight: 700; display: flex; justify-content: space-between; align-items: center; min-height: 50px; }
         .list-color-header:active { background: #edf2f7; }
         .list-color-body { padding: 0 15px; max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-        .list-color-body.open { max-height: 800px; padding-bottom: 8px; }
-        .list-part-item { padding: 9px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-        .list-part-item:last-child { border-bottom: none; }
+        .list-color-body.open { max-height: 20000px; padding-bottom: 8px; }
+        .list-part-item { padding: 7px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .list-size-group { padding: 2px 0; }
+        .list-size-group-label {
+            display: inline-flex; align-items: center; gap: 5px; background: #eef2f5; color: var(--secondary);
+            font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 10px; margin: 6px 0 4px;
+        }
+        .list-size-divider { height: 1px; background: var(--border); margin: 6px 0; }
         .list-part-info { flex: 1 1 auto; min-width: 0; }
         .list-part-title { line-height: 1.35; }
         .list-part-title-row { display: flex; align-items: center; gap: 6px; }
@@ -636,22 +668,24 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-2">
-                        <label class="settings-label"><i class="fas fa-puzzle-piece me-1"></i>Parça Adı</label>
-                        <input type="text" id="bulkPartName" class="form-control" list="bulkPartNameList" placeholder="Örn: KLAPA">
-                        <datalist id="bulkPartNameList"></datalist>
-                    </div>
-                    <div class="mb-2">
-                        <label class="settings-label"><i class="fas fa-ruler-combined me-1"></i>Ebat</label>
-                        <input type="text" id="bulkSizeName" class="form-control" list="bulkSizeNameList" placeholder="Örn: 392X162">
-                        <datalist id="bulkSizeNameList"></datalist>
-                    </div>
-                    <div class="mb-3">
-                        <label class="settings-label"><i class="fas fa-layer-group me-1"></i>Kalınlık</label>
-                        <select id="bulkThickness" class="form-control">
-                            <option value="18">18mm</option>
-                            <option value="30">30mm</option>
-                        </select>
+                    <div class="bulk-fields-row">
+                        <div class="bulk-field-col autocomplete-wrap">
+                            <label class="bulk-field-label"><i class="fas fa-puzzle-piece"></i>Parça Adı</label>
+                            <input type="text" id="bulkPartName" class="bulk-field-input" placeholder="ör. KLAPA" autocomplete="off">
+                            <div class="autocomplete-suggestions" id="bulkPartNameSuggestions"></div>
+                        </div>
+                        <div class="bulk-field-col autocomplete-wrap">
+                            <label class="bulk-field-label"><i class="fas fa-ruler-combined"></i>Ebat</label>
+                            <input type="text" id="bulkSizeName" class="bulk-field-input" placeholder="ör. 392X162" autocomplete="off">
+                            <div class="autocomplete-suggestions" id="bulkSizeNameSuggestions"></div>
+                        </div>
+                        <div class="bulk-field-col bulk-field-col-narrow">
+                            <label class="bulk-field-label"><i class="fas fa-layer-group"></i>Kalınlık</label>
+                            <select id="bulkThickness" class="bulk-field-input">
+                                <option value="18">18mm</option>
+                                <option value="30">30mm</option>
+                            </select>
+                        </div>
                     </div>
                     <label class="settings-label"><i class="fas fa-palette me-1"></i>Renk Bazlı Miktarlar (boş bırakılanlar atlanır)</label>
                     <div id="bulkColorRows" class="bulk-color-rows"></div>
@@ -1215,11 +1249,6 @@
                     ? '<i class="fas fa-layer-group me-2"></i>Aynı Ebatı Birden Fazla Renge Ekle (Giriş)'
                     : '<i class="fas fa-layer-group me-2"></i>Aynı Ebattan Birden Fazla Renkten Çıkart (Çıkış)';
 
-                const partNames = [...new Set(inventory.flatMap(c => c.parts.map(p => p.name)).filter(Boolean))].sort((a, b) => trSort(a, b));
-                document.getElementById('bulkPartNameList').innerHTML = partNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
-                const sizeNames = [...new Set(inventory.flatMap(c => c.parts.flatMap(p => p.sizes.map(s => s.name))).filter(Boolean))].sort((a, b) => trSort(a, b));
-                document.getElementById('bulkSizeNameList').innerHTML = sizeNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
-
                 const rowsEl = document.getElementById('bulkColorRows');
                 const sortedColors = [...inventory].sort((a, b) => trSort(a.name, b.name));
                 rowsEl.innerHTML = sortedColors.map(c => `
@@ -1229,6 +1258,31 @@
                     </div>`).join('');
 
                 new bootstrap.Modal(document.getElementById('bulkSizeModal')).show();
+            }
+            // Tarayıcının yerel <datalist>'i yerine kendi stillendirilebilir öneri (autocomplete)
+            // kutumuz: input'a odaklanınca/yazınca eşleşen isimleri gösterir, tıklayınca doldurur.
+            function setupAutocomplete(inputId, boxId, getOptions) {
+                const input = document.getElementById(inputId);
+                const box = document.getElementById(boxId);
+                function show() {
+                    const q = input.value.trim().toLocaleUpperCase('tr-TR');
+                    const options = getOptions();
+                    const matches = (q ? options.filter(o => o.toLocaleUpperCase('tr-TR').includes(q)) : options).slice(0, 6);
+                    if (!matches.length) { box.classList.remove('open'); box.innerHTML = ''; return; }
+                    box.innerHTML = matches.map(o => `<div class="autocomplete-suggestion-item">${escapeHtml(o)}</div>`).join('');
+                    box.classList.add('open');
+                }
+                input.addEventListener('input', show);
+                input.addEventListener('focus', show);
+                input.addEventListener('blur', () => setTimeout(() => box.classList.remove('open'), 150));
+                // mousedown (click değil) - blur'dan ÖNCE tetiklensin ki liste kapanmadan seçim algılansın
+                box.addEventListener('mousedown', function (e) {
+                    const item = e.target.closest('.autocomplete-suggestion-item');
+                    if (!item) return;
+                    e.preventDefault();
+                    input.value = item.textContent;
+                    box.classList.remove('open');
+                });
             }
             function addBulkColorRow() {
                 const rowsEl = document.getElementById('bulkColorRows');
@@ -2171,35 +2225,52 @@
                 }));
                 const names = Object.keys(map).sort();
                 if (!names.length) { body.innerHTML = '<p class="text-muted text-center py-4">Henüz parça eklenmemiş.</p>'; return; }
-                body.innerHTML = names.map((name, i) => `
+                body.innerHTML = names.map((name, i) => {
+                    // Aynı ebattaki kayıtları grupla; farklı ebat grupları arasına ince bir çizgi konur
+                    const bySize = {};
+                    map[name].forEach(row => {
+                        const sk = row.sizeName || 'İsimsiz Ebat';
+                        if (!bySize[sk]) bySize[sk] = [];
+                        bySize[sk].push(row);
+                    });
+                    const sizeKeys = Object.keys(bySize).sort((a, b) => trSort(a, b));
+                    const renderRow = (row) => {
+                        const show18 = row.net18 > 0, show30 = row.net30 > 0;
+                        const singleClass = (show18 !== show30) ? 'single' : '';
+                        let qtyHtml = '';
+                        if (show18 || show30) {
+                            qtyHtml = `<div class="list-part-qty ${singleClass}">${show18 ? `<span>18mm: ${row.net18}</span>` : ''}${show30 ? `<span>30mm: ${row.net30}</span>` : ''}</div>`;
+                        }
+                        const noteHtml = row.note ? `<div class="note-preview-list" title="${escapeHtml(row.note)}">${escapeHtml(row.note)}</div>` : '';
+                        return `
+                        <div class="list-part-item">
+                            <div class="list-part-info">
+                                <div class="list-part-title-row">
+                                    <div class="list-part-title"><i class="fas fa-palette me-1"></i>${escapeHtml(row.colorName)}</div>
+                                    <button class="note-btn ${row.note ? 'has-note' : ''}" data-action="open-note-overview" data-color-id="${row.colorId}" data-part-id="${row.partId}" data-size-id="${row.sizeId}" title="${row.note ? 'Açıklamayı Düzenle' : 'Açıklama Ekle'}"><i class="fas fa-comment-dots"></i></button>
+                                </div>
+                                ${noteHtml}
+                            </div>
+                            ${qtyHtml}
+                        </div>`;
+                    };
+                    const groupsHtml = sizeKeys.map((sk, gi) => `
+                        ${gi > 0 ? '<div class="list-size-divider"></div>' : ''}
+                        <div class="list-size-group">
+                            <div class="list-size-group-label"><i class="fas fa-ruler-combined"></i>${escapeHtml(sk)}</div>
+                            ${bySize[sk].map(renderRow).join('')}
+                        </div>`).join('');
+                    return `
                     <div class="list-color-item">
                         <div class="list-color-header" data-list-index="${i}">
                             <span><i class="fas fa-cube me-2"></i>${escapeHtml(name)}</span>
                             <i class="fas fa-chevron-down"></i>
                         </div>
                         <div class="list-color-body" id="listBody-${i}">
-                            ${map[name].map(row => {
-                                const show18 = row.net18 > 0, show30 = row.net30 > 0;
-                                const singleClass = (show18 !== show30) ? 'single' : '';
-                                let qtyHtml = '';
-                                if (show18 || show30) {
-                                    qtyHtml = `<div class="list-part-qty ${singleClass}">${show18 ? `<span>18mm: ${row.net18}</span>` : ''}${show30 ? `<span>30mm: ${row.net30}</span>` : ''}</div>`;
-                                }
-                                const noteHtml = row.note ? `<div class="note-preview-list" title="${escapeHtml(row.note)}">${escapeHtml(row.note)}</div>` : '';
-                                return `
-                                <div class="list-part-item">
-                                    <div class="list-part-info">
-                                        <div class="list-part-title-row">
-                                            <div class="list-part-title">${escapeHtml(row.colorName)} — ${escapeHtml(row.sizeName)}</div>
-                                            <button class="note-btn ${row.note ? 'has-note' : ''}" data-action="open-note-overview" data-color-id="${row.colorId}" data-part-id="${row.partId}" data-size-id="${row.sizeId}" title="${row.note ? 'Açıklamayı Düzenle' : 'Açıklama Ekle'}"><i class="fas fa-comment-dots"></i></button>
-                                        </div>
-                                        ${noteHtml}
-                                    </div>
-                                    ${qtyHtml}
-                                </div>`;
-                            }).join('')}
+                            ${groupsHtml}
                         </div>
-                    </div>`).join('');
+                    </div>`;
+                }).join('');
 
                 document.querySelectorAll('.list-color-header').forEach(header => {
                     header.addEventListener('click', function () {
@@ -2692,6 +2763,10 @@
                 });
                 document.getElementById('bulkAddBtn').addEventListener('click', openBulkSizeModal);
                 document.getElementById('bulkAddColorRowBtn').addEventListener('click', addBulkColorRow);
+                setupAutocomplete('bulkPartName', 'bulkPartNameSuggestions',
+                    () => [...new Set(inventory.flatMap(c => c.parts.map(p => p.name)).filter(Boolean))].sort((a, b) => trSort(a, b)));
+                setupAutocomplete('bulkSizeName', 'bulkSizeNameSuggestions',
+                    () => [...new Set(inventory.flatMap(c => c.parts.flatMap(p => p.sizes.map(s => s.name))).filter(Boolean))].sort((a, b) => trSort(a, b)));
                 document.getElementById('bulkSizeConfirmBtn').addEventListener('click', confirmBulkSizeEntry);
 
                 document.getElementById('listBtn').addEventListener('click', function () {
